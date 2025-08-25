@@ -1,15 +1,16 @@
-export const getIncidents = async () => {
-  // Mock implementation of the Google Sheets API
-  const mockData = [
-    { id: 1, description: 'Printer not working', priority: 'High', state: 'Open' },
-    { id: 2, description: 'Cannot access shared folder', priority: 'Medium', state: 'In Progress' },
-    { id: 3, description: 'Email client crashing', priority: 'High', state: 'Open' },
-    { id: 4, description: 'Software installation request', priority: 'Low', state: 'Closed' },
-  ];
+const SPREADSHEET_ID = '1VIrJbGlzQaesw0tpM-TW1Zkca9S-SWB1jeT2zotmDKk';
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockData);
-    }, 1000);
+export const getIncidents = async (gapi: any) => {
+  const response = await gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Incidents!A2:D', // Assuming the data is in a sheet named 'Incidents' and starts from A2
   });
+
+  const values = response.result.values || [];
+  return values.map((row: any, index: number) => ({
+    id: index + 1,
+    description: row[0],
+    priority: row[1],
+    state: row[2],
+  }));
 };

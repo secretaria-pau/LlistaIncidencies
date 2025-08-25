@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getIncidents } from '../googleSheetsApi';
+import { useGapi } from './GapiLoader';
 
 interface Incident {
   id: number;
@@ -13,6 +14,7 @@ type SortKey = keyof Incident;
 const ITEMS_PER_PAGE = 10;
 
 const IncidentsList = () => {
+  const { gapi, isGapiReady } = useGapi();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,18 +23,20 @@ const IncidentsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const fetchIncidents = async () => {
-      try {
-        const data = await getIncidents();
-        setIncidents(data as Incident[]);
-      } catch (err) {
-        setError('Error fetching incidents');
-      }
-      setLoading(false);
-    };
+    if (isGapiReady) {
+      const fetchIncidents = async () => {
+        try {
+          const data = await getIncidents(gapi);
+          setIncidents(data as Incident[]);
+        } catch (err) {
+          setError('Error fetching incidents');
+        }
+        setLoading(false);
+      };
 
-    fetchIncidents();
-  }, []);
+      fetchIncidents();
+    }
+  }, [gapi, isGapiReady]);
 
   const paginatedAndFilteredAndSortedIncidents = useMemo(() => {
     let filteredIncidents = incidents.filter(
@@ -81,7 +85,7 @@ const IncidentsList = () => {
     ).length / ITEMS_PER_PAGE
   );
 
-  if (loading) {
+  if (!isGapiReady || loading) {
     return <p>Loading incidents...</p>;
   }
 
