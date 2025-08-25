@@ -1,0 +1,12 @@
+/* Reset default browser styles */
+body, h1, h2, h3, p, div, ul, li, button, input, select, textarea {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+body {
+  background-color: #f0f2f5;
+  color: #333;
+}
