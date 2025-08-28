@@ -1,1 +1,17 @@
+.info-icon {
+  margin-left: 8px;
+  cursor: pointer;
+  color: #0d6efd;
+}
 
+.popover {
+  position: fixed;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 300px;
+  word-wrap: break-word;
+}

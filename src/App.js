@@ -41,6 +41,7 @@ function App() {
   const [signatureType, setSignatureType] = useState('');
   const [currentView, setCurrentView] = useState('list');
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem('googleAccessToken'));
+  const [popover, setPopover] = useState({ show: false, content: '', x: 0, y: 0 });
 
   // Effect to load profile if accessToken is already present (from localStorage)
   useEffect(() => {
@@ -74,31 +75,7 @@ function App() {
   }, []); // Run only once on mount
 
   const handleSignClick = (incidentData, originalSheetRowIndex, type) => {
-    const headers = masterIncidents.length > 0 ? masterIncidents[0] : [];
-    const dataIniciIndex = headers.indexOf('Data Inici');
-    const dataFiIndex = headers.indexOf('Data Fi');
-
-    const dataIniciStr = incidentData[dataIniciIndex];
-    const dataFiStr = incidentData[dataFiIndex];
-
-    // Determine the date to check against. Prioritize Data Fi.
-    const targetDateStr = dataFiStr || dataIniciStr;
-
-    if (!targetDateStr || !targetDateStr.includes('/')) {
-      setError("La incidència no té una data vàlida (dd/mm/yyyy) per poder ser signada.");
-      return;
-    }
-
-    // Dates from the sheet are in DD/MM/YYYY format.
-    const parts = targetDateStr.split('/');
-    const targetDate = new Date(parts[2], parts[1] - 1, parts[0]);
-    const today = new Date();
-
-    // Reset time part for accurate day-only comparison
-    targetDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-
-    if (today < targetDate) {
+    if (!isValidSignDate(incidentData)) {
       setError("No es pot signar una incidència abans de la seva data de finalització (o d'inici si no té data de fi).");
       return;
     }
@@ -129,7 +106,7 @@ function App() {
     }
 
     try {
-      await updateSheetData(`Incidències!A${originalSheetRowIndex}:M${originalSheetRowIndex}`, [updatedIncidentData], accessToken);
+      await updateSheetData(`Incidències!A${originalSheetRowIndex}:N${originalSheetRowIndex}`, [updatedIncidentData], accessToken);
       fetchIncidents(); // Refetch all data after a change
       setIsSignaturePopupOpen(false);
       setIncidentToSign(null);
@@ -139,6 +116,38 @@ function App() {
       setError("Error al signar la incidència. (Detalls: " + err.message + ")");
       setIsSignaturePopupOpen(false);
     }
+  };
+
+  const isValidSignDate = (incidentData) => {
+    const headers = masterIncidents.length > 0 ? masterIncidents[0] : [];
+    const dataIniciIndex = headers.indexOf('Data Inici');
+    const dataFiIndex = headers.indexOf('Data Fi');
+
+    const dataIniciStr = incidentData[dataIniciIndex] ? incidentData[dataIniciIndex].trim() : '';
+    const dataFiStr = incidentData[dataFiIndex] ? incidentData[dataFiIndex].trim() : '';
+
+    const targetDateStr = dataFiStr || dataIniciStr;
+
+    if (!targetDateStr) {
+      return false; // No date to check against
+    }
+
+    let targetDate;
+    if (targetDateStr.includes('/')) {
+      const parts = targetDateStr.split('/');
+      targetDate = new Date(parts[2], parts[1] - 1, parts[0]);
+    } else if (targetDateStr.includes('-')) {
+      const parts = targetDateStr.split('-');
+      targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    } else {
+      return false; // Invalid date format
+    }
+
+    const today = new Date();
+    targetDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return today >= targetDate; // True if today is on or after targetDate
   };
 
   const handleCancelSignature = () => {
@@ -161,7 +170,7 @@ function App() {
 
       if (!isEdit) {
         // It's a new incident, just append it
-        await appendSheetData('Incidències!A:M', [incidentData], accessToken);
+        await appendSheetData('Incidències!A:N', [incidentData], accessToken);
       } else {
         const originalIncident = editingIncident.data;
         const isUserSigned = originalIncident[8] === 'TRUE';
@@ -173,15 +182,15 @@ function App() {
           // 1. Mark original as deleted
           const deletedIncidentData = [...originalIncident];
           deletedIncidentData[12] = 'TRUE'; // Set 'Esborrat' to TRUE
-          await updateSheetData(`Incidències!A${originalSheetRowIndex}:M${originalSheetRowIndex}`, [deletedIncidentData], accessToken);
+          await updateSheetData(`Incidències!A${originalSheetRowIndex}:N${originalSheetRowIndex}`, [deletedIncidentData], accessToken);
 
           // 2. Create new incident with the changes
           // The incidentData from the form already has signatures cleared
-          await appendSheetData('Incidències!A:M', [incidentData], accessToken);
+          await appendSheetData('Incidències!A:N', [incidentData], accessToken);
 
         } else {
           // Not signed, just update it
-          await updateSheetData(`Incidències!A${originalSheetRowIndex}:M${originalSheetRowIndex}`, [incidentData], accessToken);
+          await updateSheetData(`Incidències!A${originalSheetRowIndex}:N${originalSheetRowIndex}`, [incidentData], accessToken);
         }
       }
 
@@ -197,7 +206,7 @@ function App() {
   const fetchIncidents = async () => {
     if (!accessToken) return;
     try {
-      const data = await fetchSheetData('Incidències!A:M', accessToken);
+      const data = await fetchSheetData('Incidències!A:N', accessToken);
       setMasterIncidents(data);
     } catch (err) {
       console.error("Error fetching incidents:", err);
@@ -288,6 +297,14 @@ function App() {
     }
   }, [profile]);
 
+  const handleMouseEnter = (e, content) => {
+    setPopover({ show: true, content, x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    setPopover({ show: false, content: '', x: 0, y: 0 });
+  };
+
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -353,6 +370,7 @@ function App() {
     const exerciciIndex = columnHeaders.indexOf('Exercici');
     const tipusIndex = columnHeaders.indexOf('Tipus');
     const esborratIndex = columnHeaders.indexOf('Esborrat');
+    const observacionsIndex = columnHeaders.indexOf('Observacions');
 
     // Define the order and content of the new visible headers
     const processedHeaders = [
@@ -392,6 +410,12 @@ function App() {
           <div className="alert alert-danger alert-dismissible fade show" role="alert">
             {error}
             <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close" onClick={() => setError(null)}></button>
+          </div>
+        )}
+
+        {popover.show && (
+          <div className="popover" style={{ top: popover.y + 10, left: popover.x + 10 }}>
+            {popover.content}
           </div>
         )}
 
@@ -502,9 +526,11 @@ function App() {
                   {incidents.slice(1).map((item, rowIndex) => {
                     const isUserSigned = item.data[signaturaUsuariIndex] === 'TRUE';
                     const isDirectorSigned = item.data[signaturaDireccioIndex] === 'TRUE';
-                    const canUserSign = profile?.role === 'Usuari' && !isUserSigned && !isDirectorSigned;
-                    const canDirectorSign = profile?.role === 'Direcció' && !isDirectorSigned;
+                    const canSign = isValidSignDate(item.data);
+                    const canUserSign = profile?.role === 'Usuari' && !isUserSigned && !isDirectorSigned && canSign;
+                    const canDirectorSign = profile?.role === 'Direcció' && !isDirectorSigned && canSign;
                     const canEdit = !isDirectorSigned || (isDirectorSigned && profile.role === 'Direcció');
+                    const observacions = item.data[observacionsIndex];
 
                     return (
                       <tr key={rowIndex}>
@@ -518,7 +544,21 @@ function App() {
                           {item.data[horaFiIndex]}
                         </td>
                         <td>{item.data[duracioIndex]}</td>
-                        <td>{item.data[tipusIndex]}</td>
+                        <td>
+                          {item.data[tipusIndex]}
+                          {observacions && (
+                            <span 
+                              className="info-icon"
+                              onMouseEnter={(e) => handleMouseEnter(e, observacions)}
+                              onMouseLeave={handleMouseLeave}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-info-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                              </svg>
+                            </span>
+                          )}
+                        </td>
                         <td>
                           <input type="checkbox" checked={isUserSigned} readOnly />
                           {isUserSigned && <><br/>{item.data[timestampSignaturaUsuariIndex]}</>}

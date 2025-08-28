@@ -39,6 +39,7 @@ const AddIncidentForm = ({
     'Signatura Direcció': false,
     'Timestamp Signatura Direcció': '',
     'Esborrat': false,
+    'Observacions': '',
   });
   const [selectedTypeUnit, setSelectedTypeUnit] = useState('H'); // Default to Hours
 
@@ -58,6 +59,7 @@ const AddIncidentForm = ({
         'Signatura Direcció': incidentToEdit[10] === 'TRUE',
         'Timestamp Signatura Direcció': incidentToEdit[11] || '',
         'Esborrat': incidentToEdit[12] === 'TRUE',
+        'Observacions': incidentToEdit[13] || '',
       };
       setIncidentData(mappedData);
       const typeObj = incidentTypes.find(t => t.type === mappedData.Tipus);
@@ -191,6 +193,7 @@ const AddIncidentForm = ({
       formattedData['Signatura Direcció'] ? 'TRUE' : 'FALSE',
       formattedData['Timestamp Signatura Direcció'],
       formattedData['Esborrat'] ? 'TRUE' : 'FALSE',
+      formattedData['Observacions'],
     ];
 
     try {
@@ -319,6 +322,20 @@ const AddIncidentForm = ({
             value={incidentData['Exercici']}
             readOnly
           />
+        </div>
+      </div>
+
+      <div className="row mb-3">
+        <div className="col-md-12">
+          <label htmlFor="observacions" className="form-label">Observacions</label>
+          <textarea
+            className="form-control"
+            id="observacions"
+            name="Observacions"
+            rows="3"
+            value={incidentData['Observacions']}
+            onChange={handleChange}
+          ></textarea>
         </div>
       </div>
 
