@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/LlistaIncidencies/static/css/main.1c1f88ed.css",
-    "main.js": "/LlistaIncidencies/static/js/main.1c8914b3.js",
+    "main.js": "/LlistaIncidencies/static/js/main.dab0d07d.js",
     "static/js/453.618a8f67.chunk.js": "/LlistaIncidencies/static/js/453.618a8f67.chunk.js",
     "index.html": "/LlistaIncidencies/index.html",
     "main.1c1f88ed.css.map": "/LlistaIncidencies/static/css/main.1c1f88ed.css.map",
-    "main.1c8914b3.js.map": "/LlistaIncidencies/static/js/main.1c8914b3.js.map",
+    "main.dab0d07d.js.map": "/LlistaIncidencies/static/js/main.dab0d07d.js.map",
     "453.618a8f67.chunk.js.map": "/LlistaIncidencies/static/js/453.618a8f67.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.1c1f88ed.css",
-    "static/js/main.1c8914b3.js"
+    "static/js/main.dab0d07d.js"
   ]
 }
