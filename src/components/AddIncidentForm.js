@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
+// Helper functions for date conversion
+const toInputFormat = (dateStr) => { // dd/mm/yyyy -> yyyy-mm-dd
+  if (!dateStr || !dateStr.includes('/')) return dateStr; // Already in correct format or empty
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return dateStr; // Invalid format
+  return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+};
+
+const toSheetFormat = (dateStr) => { // yyyy-mm-dd -> dd/mm/yyyy
+  if (!dateStr || dateStr.includes('/')) return dateStr; // Already in correct format or empty
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr; // Invalid format
+  return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+};
+
 const AddIncidentForm = ({ 
   incidentToEdit, 
   originalSheetRowIndex, 
@@ -31,9 +46,9 @@ const AddIncidentForm = ({
     if (incidentToEdit) {
       const mappedData = {
         'Usuari (Email)': incidentToEdit[0] || '',
-        'Data Inici': incidentToEdit[1] || '',
+        'Data Inici': toInputFormat(incidentToEdit[1] || ''),
         'Hora Inici': incidentToEdit[2] || '',
-        'Data Fi': incidentToEdit[3] || '',
+        'Data Fi': toInputFormat(incidentToEdit[3] || ''),
         'Hora Fi': incidentToEdit[4] || '',
         'Duració': incidentToEdit[5] || '',
         'Exercici': incidentToEdit[6] || '',
@@ -45,12 +60,10 @@ const AddIncidentForm = ({
         'Esborrat': incidentToEdit[12] === 'TRUE',
       };
       setIncidentData(mappedData);
-      // Set the unit for the edited incident type
       const typeObj = incidentTypes.find(t => t.type === mappedData.Tipus);
       if (typeObj) {
         setSelectedTypeUnit(typeObj.durationUnit);
       } else {
-        // Fallback to 'H' if typeObj or typeObj.durationUnit is not found
         setSelectedTypeUnit('H');
       }
     } else {
@@ -75,7 +88,7 @@ const AddIncidentForm = ({
 
   const calculateDuration = (data) => {
     const typeObj = incidentTypes.find(t => t.type === data.Tipus);
-    const unit = typeObj ? typeObj.unit : 'H';
+    const unit = typeObj ? typeObj.durationUnit : 'H';
 
     const startDate = data['Data Inici'];
     const endDate = data['Data Fi'];
@@ -85,8 +98,8 @@ const AddIncidentForm = ({
         const start = new Date(startDate);
         const end = new Date(endDate);
         if (end >= start) {
-          const diffTime = Math.abs(end - start);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive day count
+          const diffTime = end.getTime() - start.getTime();
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
           return `${diffDays} dies`;
         }
         return 'Error: Data Fi anterior a Inici';
@@ -109,7 +122,7 @@ const AddIncidentForm = ({
         return 'Error: Data/Hora Fi anterior a Inici';
       }
     }
-    return ''; // Return empty if conditions aren't met
+    return '';
   };
 
   const handleChange = (e) => {
@@ -124,6 +137,13 @@ const AddIncidentForm = ({
         const typeObj = incidentTypes.find(t => t.type === value);
         const newUnit = typeObj ? typeObj.durationUnit : 'H';
         setSelectedTypeUnit(newUnit);
+        // Clear fields that are not relevant for the new type
+        if (newUnit === 'H') {
+          newData['Data Fi'] = '';
+        } else if (newUnit === 'D') {
+          newData['Hora Inici'] = '';
+          newData['Hora Fi'] = '';
+        }
       }
 
       if (name === 'Data Inici' && value) {
@@ -152,20 +172,25 @@ const AddIncidentForm = ({
       return;
     }
 
+    // Create a copy to format for the sheet
+    const formattedData = { ...incidentData };
+    formattedData['Data Inici'] = toSheetFormat(formattedData['Data Inici']);
+    formattedData['Data Fi'] = toSheetFormat(formattedData['Data Fi']);
+
     const dataToSend = [
-      incidentData['Usuari (Email)'],
-      incidentData['Data Inici'],
-      incidentData['Hora Inici'],
-      incidentData['Data Fi'],
-      incidentData['Hora Fi'],
-      incidentData['Duració'],
-      incidentData['Exercici'],
-      incidentData['Tipus'],
-      incidentData['Signatura Usuari'] ? 'TRUE' : 'FALSE',
-      incidentData['Timestamp Signatura Usuari'],
-      incidentData['Signatura Direcció'] ? 'TRUE' : 'FALSE',
-      incidentData['Timestamp Signatura Direcció'],
-      incidentData['Esborrat'] ? 'TRUE' : 'FALSE',
+      formattedData['Usuari (Email)'],
+      formattedData['Data Inici'],
+      formattedData['Hora Inici'],
+      formattedData['Data Fi'],
+      formattedData['Hora Fi'],
+      formattedData['Duració'],
+      formattedData['Exercici'],
+      formattedData['Tipus'],
+      formattedData['Signatura Usuari'] ? 'TRUE' : 'FALSE',
+      formattedData['Timestamp Signatura Usuari'],
+      formattedData['Signatura Direcció'] ? 'TRUE' : 'FALSE',
+      formattedData['Timestamp Signatura Direcció'],
+      formattedData['Esborrat'] ? 'TRUE' : 'FALSE',
     ];
 
     try {
@@ -179,6 +204,7 @@ const AddIncidentForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
+      {/* ... form elements ... */}
       <div className="row mb-3">
         <div className="col-md-6">
           <label htmlFor="userEmail" className="form-label">Usuari (Email)</label>
@@ -228,17 +254,21 @@ const AddIncidentForm = ({
             required
           />
         </div>
-        <div className="col-md-3">
-          <label htmlFor="endDate" className="form-label">Data Fi</label>
-          <input
-            type="date"
-            className="form-control"
-            id="endDate"
-            name="Data Fi"
-            value={incidentData['Data Fi']}
-            onChange={handleChange}
-          />
-        </div>
+        
+        {selectedTypeUnit === 'D' && (
+          <div className="col-md-3">
+            <label htmlFor="endDate" className="form-label">Data Fi</label>
+            <input
+              type="date"
+              className="form-control"
+              id="endDate"
+              name="Data Fi"
+              value={incidentData['Data Fi']}
+              onChange={handleChange}
+            />
+          </div>
+        )}
+
         {selectedTypeUnit === 'H' && (
           <>
             <div className="col-md-3">

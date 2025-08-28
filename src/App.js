@@ -14,6 +14,17 @@ import AnnualSummaryView from './components/AnnualSummaryView';
 import DocumentationView from './components/DocumentationView';
 import './App.css';
 
+// Helper function to format dates for display
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return '';
+  if (dateStr.includes('/')) return dateStr; // Already dd/mm/yyyy
+  if (dateStr.includes('-')) { // Is yyyy-mm-dd
+    const parts = dateStr.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr; // Fallback
+};
+
 function App() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
@@ -63,6 +74,35 @@ function App() {
   }, []); // Run only once on mount
 
   const handleSignClick = (incidentData, originalSheetRowIndex, type) => {
+    const headers = masterIncidents.length > 0 ? masterIncidents[0] : [];
+    const dataIniciIndex = headers.indexOf('Data Inici');
+    const dataFiIndex = headers.indexOf('Data Fi');
+
+    const dataIniciStr = incidentData[dataIniciIndex];
+    const dataFiStr = incidentData[dataFiIndex];
+
+    // Determine the date to check against. Prioritize Data Fi.
+    const targetDateStr = dataFiStr || dataIniciStr;
+
+    if (!targetDateStr || !targetDateStr.includes('/')) {
+      setError("La incidència no té una data vàlida (dd/mm/yyyy) per poder ser signada.");
+      return;
+    }
+
+    // Dates from the sheet are in DD/MM/YYYY format.
+    const parts = targetDateStr.split('/');
+    const targetDate = new Date(parts[2], parts[1] - 1, parts[0]);
+    const today = new Date();
+
+    // Reset time part for accurate day-only comparison
+    targetDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (today < targetDate) {
+      setError("No es pot signar una incidència abans de la seva data de finalització (o d'inici si no té data de fi).");
+      return;
+    }
+
     setIncidentToSign({ data: incidentData, originalSheetRowIndex: originalSheetRowIndex });
     setSignatureType(type);
     setIsSignaturePopupOpen(true);
@@ -470,11 +510,11 @@ function App() {
                       <tr key={rowIndex}>
                         <td>{item.data[userEmailIndex]}</td>
                         <td>
-                          {item.data[dataIniciIndex]}<br/>
+                          {formatDateForDisplay(item.data[dataIniciIndex])}<br/>
                           {item.data[horaIniciIndex]}
                         </td>
                         <td>
-                          {item.data[dataFiIndex]}<br/>
+                          {formatDateForDisplay(item.data[dataFiIndex])}<br/>
                           {item.data[horaFiIndex]}
                         </td>
                         <td>{item.data[duracioIndex]}</td>
@@ -543,11 +583,11 @@ function App() {
                       <tr key={rowIndex}>
                         <td>{item.data[userEmailIndex]}</td>
                         <td>
-                          {item.data[dataIniciIndex]}<br/>
+                          {formatDateForDisplay(item.data[dataIniciIndex])}<br/>
                           {item.data[horaIniciIndex]}
                         </td>
                         <td>
-                          {item.data[dataFiIndex]}<br/>
+                          {formatDateForDisplay(item.data[dataFiIndex])}<br/>
                           {item.data[horaFiIndex]}
                         </td>
                         <td>{item.data[duracioIndex]}</td>
