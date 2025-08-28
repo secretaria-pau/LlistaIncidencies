@@ -49,6 +49,9 @@ const AddIncidentForm = ({
       const typeObj = incidentTypes.find(t => t.type === mappedData.Tipus);
       if (typeObj) {
         setSelectedTypeUnit(typeObj.durationUnit);
+      } else {
+        // Fallback to 'H' if typeObj or typeObj.durationUnit is not found
+        setSelectedTypeUnit('H');
       }
     } else {
       const defaultUser = (profile.role === 'Usuari') ? profile.email : '';
@@ -119,7 +122,8 @@ const AddIncidentForm = ({
 
       if (name === 'Tipus') {
         const typeObj = incidentTypes.find(t => t.type === value);
-        setSelectedTypeUnit(typeObj ? typeObj.unit : 'H');
+        const newUnit = typeObj ? typeObj.durationUnit : 'H';
+        setSelectedTypeUnit(newUnit);
       }
 
       if (name === 'Data Inici' && value) {
