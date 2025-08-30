@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/LlistaIncidencies/static/css/main.05d4b982.css",
-    "main.js": "/LlistaIncidencies/static/js/main.1e8c7fb2.js",
-    "static/js/453.618a8f67.chunk.js": "/LlistaIncidencies/static/js/453.618a8f67.chunk.js",
+    "main.css": "/LlistaIncidencies/static/css/main.300a0086.css",
+    "main.js": "/LlistaIncidencies/static/js/main.e59103ba.js",
+    "static/js/453.f2e324f4.chunk.js": "/LlistaIncidencies/static/js/453.f2e324f4.chunk.js",
     "index.html": "/LlistaIncidencies/index.html",
-    "main.05d4b982.css.map": "/LlistaIncidencies/static/css/main.05d4b982.css.map",
-    "main.1e8c7fb2.js.map": "/LlistaIncidencies/static/js/main.1e8c7fb2.js.map",
-    "453.618a8f67.chunk.js.map": "/LlistaIncidencies/static/js/453.618a8f67.chunk.js.map"
+    "main.300a0086.css.map": "/LlistaIncidencies/static/css/main.300a0086.css.map",
+    "main.e59103ba.js.map": "/LlistaIncidencies/static/js/main.e59103ba.js.map",
+    "453.f2e324f4.chunk.js.map": "/LlistaIncidencies/static/js/453.f2e324f4.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.05d4b982.css",
-    "static/js/main.1e8c7fb2.js"
+    "static/css/main.300a0086.css",
+    "static/js/main.e59103ba.js"
   ]
 }
