@@ -12,6 +12,9 @@ import AddIncidentForm from './components/AddIncidentForm';
 import SignatureConfirmPopup from './components/SignatureConfirmPopup';
 import AnnualSummaryView from './components/AnnualSummaryView';
 import DocumentationView from './components/DocumentationView';
+import LoginView from './components/LoginView';
+import HomeView from './components/HomeView';
+import MyGroupsView from './components/MyGroupsView';
 import './App.css';
 
 // Helper function to format dates for display
@@ -26,6 +29,7 @@ const formatDateForDisplay = (dateStr) => {
 };
 
 function App() {
+  const [currentScreen, setCurrentScreen] = useState('login'); // login, home, incidents, groups
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
   const [masterIncidents, setMasterIncidents] = useState([]); // Holds all incidents from the sheet
@@ -56,6 +60,7 @@ function App() {
 
           if (userProfile) {
             setProfile(userProfile);
+            setCurrentScreen('home');
           } else {
             setError("Accés no autoritzat. El vostre correu electrònic no es troba a la llista d'usuaris permesos.");
             setProfile(null);
@@ -215,25 +220,27 @@ function App() {
   };
 
   useEffect(() => {
-    fetchIncidents();
-    
-    if (accessToken) {
-      const loadFormDependencies = async () => {
-        try {
-          const [usersData, typesData] = await Promise.all([
-            getUsers(accessToken),
-            getIncidentTypes(accessToken)
-          ]);
-          setUsers(usersData); 
-          setIncidentTypes(typesData);
-        } catch (err) {
-          console.error("Error loading form dependencies:", err);
-          setError("Error en carregar les dades per als formularis (usuaris/tipus).");
-        }
-      };
-      loadFormDependencies();
+    if (currentScreen === 'incidents') {
+      fetchIncidents();
+      
+      if (accessToken) {
+        const loadFormDependencies = async () => {
+          try {
+            const [usersData, typesData] = await Promise.all([
+              getUsers(accessToken),
+              getIncidentTypes(accessToken)
+            ]);
+            setUsers(usersData); 
+            setIncidentTypes(typesData);
+          } catch (err) {
+            console.error("Error loading form dependencies:", err);
+            setError("Error en carregar les dades per als formularis (usuaris/tipus).");
+          }
+        };
+        loadFormDependencies();
+      }
     }
-  }, [accessToken]);
+  }, [accessToken, currentScreen]);
 
   // Filtering logic
   useEffect(() => {
@@ -319,6 +326,7 @@ function App() {
 
         if (userProfile) {
           setProfile(userProfile);
+          setCurrentScreen('home');
         } else {
           setError("Accés no autoritzat. El vostre correu electrònic no es troba a la llista d'usuaris permesos.");
           setProfile(null);
@@ -336,7 +344,7 @@ function App() {
     onError: () => {
       setError("Error d'inici de sessió. Si us plau, torneu a intentar-ho.");
     },
-    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/chat.spaces.readonly https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/chat.memberships https://www.googleapis.com/auth/admin.directory.group.readonly',
   });
 
   const handleLogout = () => {
@@ -346,9 +354,10 @@ function App() {
     setIncidentTypes([]);
     setMasterIncidents([]);
     localStorage.removeItem('googleAccessToken');
+    setCurrentScreen('login');
   };
   
-  const MainApp = () => {
+  const IncidentsView = ({ onBackClick }) => {
     const exerciseIndex = masterIncidents.length > 0 ? masterIncidents[0].indexOf('Exercici') : -1;
     const availableYears = exerciseIndex === -1 ? [] : [...new Set(masterIncidents.slice(1).map(item => item[exerciseIndex]))].filter(Boolean).sort((a, b) => b - a);
 
@@ -405,6 +414,7 @@ function App() {
             <div><small>{profile.email}</small></div>
           </div>
         </div>
+        <button onClick={onBackClick} className="btn btn-secondary mb-3">Tornar</button>
         
         {error && (
           <div className="alert alert-danger alert-dismissible fade show" role="alert">
@@ -689,27 +699,29 @@ function App() {
           message={`Esteu segur que voleu signar aquesta incidència com a ${signatureType === 'user' ? 'Usuari' : 'Direcció'}?`}
         />
 
-        <button onClick={handleLogout} className="btn btn-danger mt-5">Tancar Sessió</button>
+        
       </div>
     );
   }
 
-  const LoginPage = () => (
-     <div className="container vh-100 d-flex justify-content-center align-items-center">
-        <div className="card text-center p-4 shadow">
-            <div className="card-body">
-                <h1 className="card-title">Gestió d'Incidències</h1>
-                <p className="card-text">Si us plau, inicieu sessió con Google</p>
-                <button onClick={() => login()} className="btn btn-primary">Accedir con Google</button>
-                {error && <p className="text-danger mt-3">{error}</p>}
-            </div>
-        </div>
-    </div>
-  );
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'login':
+        return <LoginView onLogin={login} error={error} />;
+      case 'home':
+        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onGroupsClick={() => setCurrentScreen('groups')} profile={profile} onLogout={handleLogout} />;
+      case 'incidents':
+        return <IncidentsView onBackClick={() => setCurrentScreen('home')} />;
+      case 'groups':
+        return <MyGroupsView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
+      default:
+        return <LoginView onLogin={login} error={error} />;
+    }
+  };
 
   return (
       <div className="App">
-        {profile ? <MainApp /> : <LoginPage />}
+        {renderScreen()}
       </div>
   );
 }
