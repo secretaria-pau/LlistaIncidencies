@@ -134,7 +134,7 @@ const handleExportStudents = async (classroom) => { // CAMBIO: Ahora recibe 'cla
                 <button className="btn btn-sm btn-info me-2" onClick={() => handleViewStudents(classroom)}>
                   Alumnes
                 </button>
-                <button className="btn btn-sm btn-primary" onClick={() => { console.log("Exportar Alumnes button clicked!"); handleExportStudents(classroom); }}> 
+                <button className="btn btn-sm btn-primary" onClick={() => { /* console.log("Exportar Alumnes button clicked!"); handleExportStudents(classroom);*/ }}> 
                   Exportar Alumnes
                 </button>
               </td>

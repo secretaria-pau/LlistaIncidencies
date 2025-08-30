@@ -15,6 +15,7 @@ import DocumentationView from './components/DocumentationView';
 import LoginView from './components/LoginView';
 import HomeView from './components/HomeView';
 import MyGroupsView from './components/MyGroupsView';
+import CalendarMainView from './components/calendar/CalendarMainView';
 import './App.css';
 
 // Helper function to format dates for display
@@ -344,7 +345,7 @@ function App() {
     onError: () => {
       setError("Error d'inici de sessió. Si us plau, torneu a intentar-ho.");
     },
-    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/chat.spaces.readonly https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/chat.memberships https://www.googleapis.com/auth/admin.directory.group.readonly',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/chat.spaces.readonly https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/chat.memberships https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
   });
 
   const handleLogout = () => {
@@ -408,13 +409,17 @@ function App() {
     return (
       <div className="container mt-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>Aplicació d'Incidències - CFA La Pau</h2>
-          <div className="text-end">
-            <div><strong>{profile.name}</strong> ({profile.role})</div>
-            <div><small>{profile.email}</small></div>
+          <h2>Llistat d'Incidències</h2>
+          <div className="d-flex align-items-center">
+            {profile && (
+              <div className="text-end me-3">
+                <div><strong>{profile.name}</strong> ({profile.role})</div>
+                <div><small>{profile.email}</small></div>
+              </div>
+            )}
+            <button onClick={onBackClick} className="btn btn-secondary">Tornar</button>
           </div>
         </div>
-        <button onClick={onBackClick} className="btn btn-secondary mb-3">Tornar</button>
         
         {error && (
           <div className="alert alert-danger alert-dismissible fade show" role="alert">
@@ -709,9 +714,11 @@ function App() {
       case 'login':
         return <LoginView onLogin={login} error={error} />;
       case 'home':
-        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onGroupsClick={() => setCurrentScreen('groups')} profile={profile} onLogout={handleLogout} />;
+        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} profile={profile} onLogout={handleLogout} />;
       case 'incidents':
         return <IncidentsView onBackClick={() => setCurrentScreen('home')} />;
+      case 'calendar':
+        return <CalendarMainView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
       case 'groups':
         return <MyGroupsView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
       default:

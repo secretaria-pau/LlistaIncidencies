@@ -222,7 +222,7 @@ const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig
 
             {selectedClassroom && (
               <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                {console.log("Modal is rendered for:", selectedClassroom.name)} {/* AÑADE ESTA LÍNEA */}
+                {/* console.log("Modal is rendered for:", selectedClassroom.name) */} {/* AÑADE ESTA LÍNEA */}
                 <div className="modal-dialog modal-lg">
                   <div className="modal-content">
                     <div className="modal-header">

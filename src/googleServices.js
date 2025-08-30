@@ -108,7 +108,7 @@ export async function updateConfig(config, accessToken) {
       const errorBody = await response.text();
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
-    console.log('Config updated successfully.');
+        // console.log('Config updated successfully.');
     return response.json();
   } catch (error) {
     console.error('Error in updateConfig:', error);

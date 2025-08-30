@@ -23,7 +23,7 @@ const MyGroupsView = ({ onBackClick, accessToken, profile }) => {
         getSheetData('Llista Groups', accessToken),
         getSheetData('Llista Chats', accessToken),
       ]);
-      console.log('Config data loaded:', configData);
+      // console.log('Config data loaded:', configData);
       setConfig(configData);
 
       // Store both display name and ID for chats
