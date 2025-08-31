@@ -16,7 +16,9 @@ import LoginView from './components/LoginView';
 import HomeView from './components/HomeView';
 import MyGroupsView from './components/MyGroupsView';
 import CalendarMainView from './components/calendar/CalendarMainView';
-import './App.css';
+import TICIncidentsView from './components/TICIncidentsView';
+import MantenimentView from './components/MantenimentView';
+
 
 // Helper function to format dates for display
 const formatDateForDisplay = (dateStr) => {
@@ -221,7 +223,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (currentScreen === 'incidents') {
+    if (currentScreen === 'incidents' || currentScreen === 'tic-incidents' || currentScreen === 'manteniment-incidents') {
       fetchIncidents();
       
       if (accessToken) {
@@ -409,7 +411,7 @@ function App() {
     return (
       <div className="container mt-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>Llistat d'Incidències</h2>
+          <h2>Incidències de personal</h2>
           <div className="d-flex align-items-center">
             {profile && (
               <div className="text-end me-3">
@@ -441,7 +443,7 @@ function App() {
                 className={`nav-link ${currentView === 'list' ? 'active' : ''}`}
                 onClick={() => setCurrentView('list')}
               >
-                Llistat d'Incidències
+                Incidències de personal
               </button>
             </li>
             <li className="nav-item">
@@ -518,7 +520,7 @@ function App() {
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h3>Llistat d'Incidències</h3>
+              <h3>Incidències de personal</h3>
               <button
                 className="btn btn-success"
                 onClick={() => setEditingIncident({ data: null, originalSheetRowIndex: null })}
@@ -714,13 +716,18 @@ function App() {
       case 'login':
         return <LoginView onLogin={login} error={error} />;
       case 'home':
-        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} profile={profile} onLogout={handleLogout} />;
+        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} onTICIncidentsClick={() => setCurrentScreen('tic-incidents')} onMantenimentClick={() => setCurrentScreen('manteniment-incidents')} profile={profile} onLogout={handleLogout} />;
       case 'incidents':
         return <IncidentsView onBackClick={() => setCurrentScreen('home')} />;
       case 'calendar':
         return <CalendarMainView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
       case 'groups':
         return <MyGroupsView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
+      case 'tic-incidents':
+        return <TICIncidentsView onBackClick={() => setCurrentScreen('home')} profile={profile} accessToken={accessToken} users={users} />;
+      case 'manteniment-incidents':
+        return <MantenimentView onBackClick={() => setCurrentScreen('home')} profile={profile} accessToken={accessToken} users={users} />;
+      
       default:
         return <LoginView onLogin={login} error={error} />;
     }

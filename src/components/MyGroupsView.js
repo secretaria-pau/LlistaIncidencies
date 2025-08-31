@@ -169,7 +169,7 @@ const MyGroupsView = ({ onBackClick, accessToken, profile }) => {
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Els meus grups</h2>
+        <h2>Grups d'alumnes</h2>
         <div className="d-flex align-items-center">
           <div className="text-end me-3">
             <div><strong>{profile.name}</strong> ({profile.role})</div>
