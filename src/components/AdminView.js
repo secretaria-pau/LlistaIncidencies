@@ -131,6 +131,9 @@ const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig
 
  
 
+  const uniqueTeachers = Array.from(new Map(teachers.map(teacher => [teacher.email, teacher])).values());
+  uniqueTeachers.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div>
       <div className="mb-4">
@@ -172,7 +175,7 @@ const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig
               <label htmlFor="teacher-select" className="form-label">Selecciona un professor:</label>
               <select id="teacher-select" className="form-select" onChange={(e) => setSelectedTeacher(e.target.value)} value={selectedTeacher}>
                 <option value="">Tots</option>
-                {teachers.map((teacher, index) => (
+                {uniqueTeachers.map((teacher, index) => (
                   <option key={index} value={teacher.email}>{teacher.name}</option>
                 ))}
               </select>

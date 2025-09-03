@@ -28,41 +28,59 @@ const transformIncidentsToEvents = (sheetData, profile) => {
   const headers = sheetData[0];
   const data = sheetData.slice(1);
 
-  const dateIndex = headers.indexOf('Data Inici');
-  const timeIndex = headers.indexOf('Hora Inici');
+  const dateIniciIndex = headers.indexOf('Data Inici');
+  const timeIniciIndex = headers.indexOf('Hora Inici');
+  const dateFiIndex = headers.indexOf('Data Fi');
+  const timeFiIndex = headers.indexOf('Hora Fi');
   const typeIndex = headers.indexOf('Tipus');
   const userIndex = headers.indexOf('Usuari (Email)');
   const deletedIndex = headers.indexOf('Esborrat');
 
-  if (dateIndex === -1 || typeIndex === -1 || userIndex === -1) {
+
+  if (dateIniciIndex === -1 || typeIndex === -1 || userIndex === -1) {
     throw new Error("No s'han trobat les columnes necessàries ('Data Inici', 'Tipus', 'Usuari (Email)') a la fulla d'incidències.");
   }
 
   return data
-    .filter(row => row[deletedIndex] !== 'TRUE') // Filter out deleted incidents
+    .filter(row => row[deletedIndex] !== 'TRUE' && row[dateIniciIndex]) // Filter out deleted and empty incidents
     .map(row => {
-      const dateStr = row[dateIndex];
-      if (!dateStr || dateStr.trim() === '') return null;
+      const parseDateTime = (dateStr, timeStr) => {
+        let dateParts;
+        if (dateStr.includes('/')) { // dd/mm/yyyy
+          dateParts = dateStr.split('/').map(p => parseInt(p));
+          dateParts = [dateParts[2], dateParts[1] - 1, dateParts[0]]; // y, m-1, d
+        } else if (dateStr.includes('-')) { // yyyy-mm-dd
+          dateParts = dateStr.split('-').map(p => parseInt(p));
+          dateParts = [dateParts[0], dateParts[1] - 1, dateParts[2]]; // y, m-1, d
+        } else {
+          return null;
+        }
+        
+        const timeParts = timeStr ? String(timeStr).split(':').map(p => parseInt(p)) : [0, 0];
+        return new Date(dateParts[0], dateParts[1], dateParts[2], timeParts[0] || 0, timeParts[1] || 0);
+      };
 
-      let dateParts;
-      if (dateStr.includes('/')) { // Format: dd/mm/yyyy
-        dateParts = dateStr.split('/');
-        if (dateParts.length !== 3) return null;
-      } else if (dateStr.includes('-')) { // Format: yyyy-mm-dd
-        dateParts = dateStr.split('-');
-        if (dateParts.length !== 3) return null;
-        // Reorder for Date constructor: [dd, mm, yyyy]
-        dateParts = [dateParts[2], dateParts[1], dateParts[0]]; 
-      } else {
-        return null; // Unknown format
+      const startDate = parseDateTime(row[dateIniciIndex], row[timeIniciIndex]);
+      if (!startDate) return null;
+
+      const isAllDay = !row[timeIniciIndex];
+      
+      let endDate;
+      // Use end date/time if available, otherwise use start date/time
+      const endDateStr = row[dateFiIndex] || row[dateIniciIndex];
+      const endTimeStr = row[timeFiIndex] || row[timeIniciIndex];
+      endDate = parseDateTime(endDateStr, endTimeStr);
+
+      if (!endDate || endDate < startDate) {
+          endDate = new Date(startDate);
+          if (!isAllDay) {
+              endDate.setHours(startDate.getHours() + 1); // Default to 1 hour if end is invalid or missing for timed events
+          }
       }
-
-      const timeParts = row[timeIndex] ? String(row[timeIndex]).split(':') : [0, 0];
-      const startDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], timeParts[0], timeParts[1]);
       
       const userEmail = row[userIndex];
       let eventTitle = '';
-      let incidentType = ''; // Use incidentType instead of eventStyle
+      let incidentType = '';
 
       if (profile.role === 'Gestor' || profile.role === 'Direcció') {
         eventTitle = `${row[typeIndex]} (${userEmail})`;
@@ -78,9 +96,12 @@ const transformIncidentsToEvents = (sheetData, profile) => {
       return {
         title: eventTitle,
         start: startDate,
-        end: startDate, // Incidents are single points in time
-        allDay: false,
-        incidentType: incidentType, // Pass incidentType
+        end: endDate,
+        allDay: isAllDay,
+        incidentType: incidentType,
+        isIncident: true,
+        rawData: row,
+        headers: headers,
       };
   }).filter(Boolean); // Filter out null entries
 };
@@ -127,6 +148,7 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
   const [calendarDate, setCalendarDate] = useState(new Date()); // For navigation
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null); // For event details/editing
+  const [selectedIncident, setSelectedIncident] = useState(null); // For incident details popup
   const [eventToEdit, setEventToEdit] = useState(null); // To pass to the form
   const [isFormOpen, setIsFormOpen] = useState(false); // Controls the event form modal
   const [error, setError] = useState(null);
@@ -137,8 +159,11 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
   };
 
   const handleSelectEvent = (event) => {
-    if (activeCalendar === CALENDARS.incidents.id) return;
-    setSelectedEvent(event);
+    if (event.isIncident) {
+      setSelectedIncident(event);
+    } else {
+      setSelectedEvent(event);
+    }
   };
 
   const handleDeleteEvent = async (eventId) => {
@@ -258,6 +283,40 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
         onEdit={handleOpenEditForm}
       />
 
+      {selectedIncident && (
+        <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Detall de la Incidència</h5>
+                <button type="button" className="btn-close" onClick={() => setSelectedIncident(null)}></button>
+              </div>
+              <div className="modal-body">
+                <h4>{selectedIncident.title}</h4>
+                <hr />
+                <p><strong>Inici:</strong> {selectedIncident.start.toLocaleString('es-ES')}</p>
+                <p><strong>Fi:</strong> {selectedIncident.end.toLocaleString('es-ES')}</p>
+                {(profile.role === 'Gestor' || profile.role === 'Direcció') && (
+                  <div className="mt-4">
+                    <h5>Detalls complets (visible per a Gestor/Direcció)</h5>
+                    {selectedIncident.headers.map((header, index) => {
+                      if (header === 'Esborrat') return null; // Don't show the deleted flag
+                      let content = selectedIncident.rawData[index];
+                      if (content === 'TRUE') content = 'Sí';
+                      if (content === 'FALSE' || content === '') content = 'No';
+                      return <p key={header}><strong>{header}:</strong> {content}</p>;
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedIncident(null)}>Tancar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-center mt-3">Cargando esdeveniments...</p>
       ) : (
@@ -276,3 +335,4 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
 }
 
 export default CalendarMainView;
+

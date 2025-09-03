@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Select from 'react-select';
 import { getUsers } from '../../googleSheetsService';
 import { createEvent, updateEvent } from '../../googleCalendarService';
 
 const CATEGORIES = ['Coordinador', 'Entrevista', 'Activitats', 'Reunions', 'JAV', 'Calendari', 'CSI', 'EIB', 'FB', 'Proves'];
+const LA_PAU_CALENDAR_ID = 'c_classroom39c07066@group.calendar.google.com';
 
 const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onEventCreated, eventToEdit }) => {
   const [title, setTitle] = useState('');
@@ -11,73 +12,85 @@ const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onE
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [isAllDay, setIsAllDay] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState('09:00');
-  const [duration, setDuration] = useState(60); // in minutes
+  const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
   const [allUsers, setAllUsers] = useState([]);
   const [invitedGuests, setInvitedGuests] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const isEditMode = eventToEdit !== null;
+  const isLaPauCalendar = calendarId === LA_PAU_CALENDAR_ID;
+
+  const filteredCategories = useMemo(() => {
+    return isLaPauCalendar
+      ? CATEGORIES.filter(cat => cat === 'Calendari' || cat === 'Activitats')
+      : CATEGORIES;
+  }, [isLaPauCalendar]);
 
   useEffect(() => {
-    // Fetch users when the form is opened
     if (isOpen) {
-      const fetchUsers = async () => {
-        try {
-          const usersData = await getUsers(accessToken);
-          setAllUsers(usersData.map(u => ({ value: u.email, label: `${u.name} (${u.email})` })));
-        } catch (err) {
-          setError('No s\'ha pogut carregar la llista d\'usuaris.');
+      // Fetch users, but not for La Pau calendar
+      if (!isLaPauCalendar) {
+        const fetchUsers = async () => {
+          try {
+            const usersData = await getUsers(accessToken);
+            setAllUsers(usersData.map(u => ({ value: u.email, label: `${u.name} (${u.email})` })));
+          } catch (err) {
+            setError('No s\'ha pogut carregar la llista d\'usuaris.');
+          }
+        };
+        fetchUsers();
+      }
+
+      // Pre-fill form if in edit mode
+      if (isEditMode) {
+        let eventTitle = eventToEdit.title;
+        let eventCategory = filteredCategories[0]; // Default category
+
+        if (eventToEdit.title.includes(': ')) {
+            const parts = eventToEdit.title.split(': ');
+            const potentialCategory = parts[0];
+            if (filteredCategories.includes(potentialCategory)) {
+                eventCategory = potentialCategory;
+                eventTitle = parts.slice(1).join(': ');
+            }
         }
-      };
-      fetchUsers();
-    }
 
-    // Pre-fill form if in edit mode
-    if (isOpen && isEditMode) {
-      const [eventCategory, ...eventTitleParts] = eventToEdit.title.split(': ');
-      const eventTitle = eventTitleParts.join(': ');
+        setTitle(eventTitle);
+        setCategory(eventCategory);
+        setDescription(eventToEdit.resource.description || '');
+        setIsAllDay(!!eventToEdit.resource.start.date);
+        
+        const start = new Date(eventToEdit.resource.start.dateTime || eventToEdit.resource.start.date);
+        const end = new Date(eventToEdit.resource.end.dateTime || eventToEdit.resource.end.date);
 
-      setTitle(eventTitle);
-      setDescription(eventToEdit.resource.description || '');
-      setCategory(CATEGORIES.includes(eventCategory) ? eventCategory : CATEGORIES[0]);
-      setIsAllDay(eventToEdit.allDay);
-      
-      const start = new Date(eventToEdit.start);
-      const end = new Date(eventToEdit.end);
-
-      setStartDate(start.toISOString().split('T')[0]);
-      setTime(start.toTimeString().slice(0, 5));
-
-      if (eventToEdit.allDay) {
+        setStartDate(start.toISOString().split('T')[0]);
+        setStartTime(start.toTimeString().slice(0, 5));
         setEndDate(end.toISOString().split('T')[0]);
+        setEndTime(end.toTimeString().slice(0, 5));
+
+        if (eventToEdit.resource.attendees) {
+          setInvitedGuests(eventToEdit.resource.attendees.map(att => ({ value: att.email, label: att.email })));
+        }
+
       } else {
-        const diffMinutes = (end.getTime() - start.getTime()) / 60000;
-        setDuration(diffMinutes);
+        // Reset form for new event
+        setTitle('');
+        setDescription('');
+        setCategory(filteredCategories[0]);
+        setIsAllDay(false);
+        const today = new Date().toISOString().split('T')[0];
+        setStartDate(today);
+        setEndDate(''); // Optional end date
+        setStartTime('09:00');
+        setEndTime('10:00');
+        setInvitedGuests([]);
+        setError('');
       }
-
-      if (eventToEdit.resource.attendees) {
-        setInvitedGuests(eventToEdit.resource.attendees.map(att => ({ value: att.email, label: att.email })));
-      }
-
-    } else if (isOpen && !isEditMode) {
-      // Reset form for new event
-      setTitle('');
-      setDescription('');
-      setCategory(CATEGORIES[0]);
-      setIsAllDay(false);
-      const today = new Date().toISOString().split('T')[0];
-      setStartDate(today);
-      setEndDate(today);
-      setTime('09:00');
-      setDuration(60);
-      setInvitedGuests([]);
-      setError('');
     }
-
-  }, [isOpen, isEditMode, eventToEdit, accessToken]);
+  }, [isOpen, isEditMode, eventToEdit, accessToken, isLaPauCalendar, filteredCategories]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,17 +100,25 @@ const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onE
     let eventData = {
       summary: `${category}: ${title}`,
       description,
-      attendees: invitedGuests.map(guest => ({ email: guest.value })),
+      attendees: isLaPauCalendar ? [] : invitedGuests.map(guest => ({ email: guest.value })),
     };
 
     if (isAllDay) {
-      const finalEndDate = new Date(endDate);
+      const finalEndDate = new Date(endDate || startDate);
       finalEndDate.setDate(finalEndDate.getDate() + 1);
       eventData.start = { date: startDate };
       eventData.end = { date: finalEndDate.toISOString().split('T')[0] };
     } else {
-      const startDateTime = new Date(`${startDate}T${time}`);
-      const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+      const finalEndDateStr = endDate || startDate;
+      const startDateTime = new Date(`${startDate}T${startTime}`);
+      const endDateTime = new Date(`${finalEndDateStr}T${endTime}`);
+
+      if (endDateTime <= startDateTime) {
+        setError('La hora de fi ha de ser posterior a la hora d\'inici.');
+        setLoading(false);
+        return;
+      }
+
       eventData.start = { dateTime: startDateTime.toISOString(), timeZone: 'Europe/Madrid' };
       eventData.end = { dateTime: endDateTime.toISOString(), timeZone: 'Europe/Madrid' };
     }
@@ -130,11 +151,10 @@ const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onE
           <div className="modal-body">
             {error && <div className="alert alert-danger">{error}</div>}
             <form onSubmit={handleSubmit}>
-              {/* Form fields remain the same */}
               <div className="mb-3">
                 <label htmlFor="category" className="form-label">Categoria</label>
                 <select id="category" className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
-                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  {filteredCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div className="mb-3">
@@ -154,40 +174,43 @@ const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onE
               </div>
 
               <div className="row">
-                <div className="col-md-4 mb-3">
+                <div className="col-md-6 mb-3">
                   <label htmlFor="startDate" className="form-label">Data d'inici</label>
                   <input type="date" className="form-control" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} required />
                 </div>
-                {isAllDay ? (
-                  <div className="col-md-4 mb-3">
-                    <label htmlFor="endDate" className="form-label">Data de fi</label>
-                    <input type="date" className="form-control" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} required />
-                  </div>
-                ) : (
-                  <>
-                    <div className="col-md-4 mb-3">
-                      <label htmlFor="time" className="form-label">Hora d'inici</label>
-                      <input type="time" className="form-control" id="time" value={time} onChange={e => setTime(e.target.value)} required />
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label htmlFor="duration" className="form-label">Duració (minuts)</label>
-                      <input type="number" className="form-control" id="duration" value={duration} onChange={e => setDuration(parseInt(e.target.value, 10))} step="15" required />
-                    </div>
-                  </>
-                )}
+                <div className="col-md-6 mb-3">
+                  <label htmlFor="endDate" className="form-label">Data de fi (opcional)</label>
+                  <input type="date" className="form-control" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                </div>
               </div>
 
-              <div className="mb-3">
-                <label htmlFor="guests" className="form-label">Convidats</label>
-                <Select
-                  id="guests"
-                  isMulti
-                  options={allUsers}
-                  value={invitedGuests}
-                  onChange={setInvitedGuests}
-                  placeholder="Selecciona convidats..."
-                />
-              </div>
+              {!isAllDay && (
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="startTime" className="form-label">Hora d'inici</label>
+                    <input type="time" className="form-control" id="startTime" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="endTime" className="form-label">Hora de fi</label>
+                    <input type="time" className="form-control" id="endTime" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+                  </div>
+                </div>
+              )}
+
+              {!isLaPauCalendar && (
+                <div className="mb-3">
+                  <label htmlFor="guests" className="form-label">Convidats</label>
+                  <Select
+                    id="guests"
+                    isMulti
+                    options={allUsers}
+                    value={invitedGuests}
+                    onChange={setInvitedGuests}
+                    placeholder="Selecciona convidats..."
+                  />
+                </div>
+              )}
+              
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel·lar</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>

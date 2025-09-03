@@ -18,6 +18,7 @@ import MyGroupsView from './components/MyGroupsView';
 import CalendarMainView from './components/calendar/CalendarMainView';
 import TICIncidentsView from './components/TICIncidentsView';
 import MantenimentView from './components/MantenimentView';
+import AvisosView from './components/AvisosView';
 
 
 // Helper function to format dates for display
@@ -206,7 +207,7 @@ function App() {
       setEditingIncident(null);
     } catch (err) {
       console.error("Error saving incident:", err);
-      setError("Error en guardar la incidència. Verifiqueu la configuració y els permisos. (Detalls: " + err.message + ")");
+      setError("Error en guardar la incidència. Verifiqueu la configuració y els permisos. (Detalles: " + err.message + ")");
     }
   };
 
@@ -431,8 +432,10 @@ function App() {
         )}
 
         {popover.show && (
-          <div className="popover" style={{ top: popover.y + 10, left: popover.x + 10 }}>
-            {popover.content}
+          <div className="popover" role="tooltip" style={{ position: 'fixed', zIndex: 9999, top: popover.y + 10, left: popover.x + 10, maxWidth: '300px', display: 'block' }}>
+            <div className="popover-body">
+              {popover.content}
+            </div>
           </div>
         )}
 
@@ -553,19 +556,10 @@ function App() {
                       <tr key={rowIndex}>
                         <td>{item.data[userEmailIndex]}</td>
                         <td>
-                          {formatDateForDisplay(item.data[dataIniciIndex])}<br/>
-                          {item.data[horaIniciIndex]}
-                        </td>
-                        <td>
-                          {formatDateForDisplay(item.data[dataFiIndex])}<br/>
-                          {item.data[horaFiIndex]}
-                        </td>
-                        <td>{item.data[duracioIndex]}</td>
-                        <td>
                           {item.data[tipusIndex]}
                           {observacions && (
                             <span 
-                              className="info-icon"
+                              className="info-icon ms-1"
                               onMouseEnter={(e) => handleMouseEnter(e, observacions)}
                               onMouseLeave={handleMouseLeave}
                             >
@@ -636,7 +630,11 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {modifiedIncidents.slice(1).map((item, rowIndex) => (
+                  {modifiedIncidents.slice(1).map((item, rowIndex) => {
+                    const isUserSigned = item.data[signaturaUsuariIndex] === 'TRUE';
+                    const isDirectorSigned = item.data[signaturaDireccioIndex] === 'TRUE';
+
+                    return (
                       <tr key={rowIndex}>
                         <td>{item.data[userEmailIndex]}</td>
                         <td>
@@ -650,18 +648,19 @@ function App() {
                         <td>{item.data[duracioIndex]}</td>
                         <td>{item.data[tipusIndex]}</td>
                         <td>
-                          <input type="checkbox" checked={item.data[signaturaUsuariIndex] === 'TRUE'} readOnly />
-                          {item.data[signaturaUsuariIndex] === 'TRUE' && <><br/>{item.data[timestampSignaturaUsuariIndex]}</>}
+                          <input type="checkbox" checked={isUserSigned} readOnly />
+                          {isUserSigned && <><br/>{item.data[timestampSignaturaUsuariIndex]}</>}
                         </td>
                         <td>
-                          <input type="checkbox" checked={item.data[signaturaDireccioIndex] === 'TRUE'} readOnly />
-                          {item.data[signaturaDireccioIndex] === 'TRUE' && <><br/>{item.data[timestampSignaturaDireccioIndex]}</>}
+                          <input type="checkbox" checked={isDirectorSigned} readOnly />
+                          {isDirectorSigned && <><br/>{item.data[timestampSignaturaDireccioIndex]}</>}
                         </td>
                         <td>
                           <input type="checkbox" checked={item.data[esborratIndex] === 'TRUE'} readOnly />
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
@@ -716,13 +715,15 @@ function App() {
       case 'login':
         return <LoginView onLogin={login} error={error} />;
       case 'home':
-        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} onTICIncidentsClick={() => setCurrentScreen('tic-incidents')} onMantenimentClick={() => setCurrentScreen('manteniment-incidents')} profile={profile} onLogout={handleLogout} />;
+        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} onTICIncidentsClick={() => setCurrentScreen('tic-incidents')} onMantenimentClick={() => setCurrentScreen('manteniment-incidents')} onAvisosClick={() => setCurrentScreen('avisos')} accessToken={accessToken} profile={profile} onLogout={handleLogout} />;
       case 'incidents':
         return <IncidentsView onBackClick={() => setCurrentScreen('home')} />;
       case 'calendar':
         return <CalendarMainView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
       case 'groups':
         return <MyGroupsView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
+      case 'avisos':
+        return <AvisosView onBackClick={() => setCurrentScreen('home')} profile={profile} accessToken={accessToken} />;
       case 'tic-incidents':
         return <TICIncidentsView onBackClick={() => setCurrentScreen('home')} profile={profile} accessToken={accessToken} users={users} />;
       case 'manteniment-incidents':

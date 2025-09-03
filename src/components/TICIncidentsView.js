@@ -167,13 +167,13 @@ const TICIncidentsView = ({ onBackClick, profile, accessToken, users }) => {
               <thead>
                 <tr>
                   <th>Tipus</th>
-                  <th>Qui fa la incidencia?</th>
-                  <th>Espai</th>
+                  <th className="d-none d-md-table-cell">Qui fa la incidencia?</th>
+                  <th className="d-none d-md-table-cell">Espai</th>
                   <th>Dispositiu afectat</th>
                   <th></th>
                   <th>Estat</th>
-                  <th>Data de comunicació</th>
-                  <th>Data de la darrera edició</th>
+                  <th className="d-none d-md-table-cell">Data de comunicació</th>
+                  <th className="d-none d-md-table-cell">Data de la darrera edició</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,8 +185,8 @@ const TICIncidentsView = ({ onBackClick, profile, accessToken, users }) => {
                     {filteredIncidents.filter(inc => inc.Estat === estat).map(incident => (
                       <tr key={incident.ID} onClick={() => handleRowClick(incident)} style={{ cursor: 'pointer' }}>
                         <td>{incident.Tipus}</td>
-                        <td>{incident["Qui fa la incidencia?"]}</td>
-                        <td>{incident.Espai}</td>
+                        <td className="d-none d-md-table-cell">{incident["Qui fa la incidencia?"]}</td>
+                        <td className="d-none d-md-table-cell">{incident.Espai}</td>
                         <td>{incident["Dispositiu afectat"]}</td>
                         <td>
                           <span 
@@ -201,8 +201,8 @@ const TICIncidentsView = ({ onBackClick, profile, accessToken, users }) => {
                           </span>
                         </td>
                         <td>{incident.Estat}</td>
-                        <td>{new Date(incident["Data de comunicació"]).toLocaleDateString('ca-ES')}</td>
-                        <td>{new Date(incident["Data de la darrera edició"]).toLocaleDateString('ca-ES')}</td>
+                        <td className="d-none d-md-table-cell">{new Date(incident["Data de comunicació"]).toLocaleDateString('ca-ES')}</td>
+                        <td className="d-none d-md-table-cell">{new Date(incident["Data de la darrera edició"]).toLocaleDateString('ca-ES')}</td>
                       </tr>
                     ))}
                   </React.Fragment>
