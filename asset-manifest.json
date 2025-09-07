@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/LlistaIncidencies/static/css/main.4798361f.css",
-    "main.js": "/LlistaIncidencies/static/js/main.0e7835ae.js",
-    "static/js/453.f2e324f4.chunk.js": "/LlistaIncidencies/static/js/453.f2e324f4.chunk.js",
-    "index.html": "/LlistaIncidencies/index.html",
-    "main.4798361f.css.map": "/LlistaIncidencies/static/css/main.4798361f.css.map",
-    "main.0e7835ae.js.map": "/LlistaIncidencies/static/js/main.0e7835ae.js.map",
-    "453.f2e324f4.chunk.js.map": "/LlistaIncidencies/static/js/453.f2e324f4.chunk.js.map"
+    "main.css": "/AppGestio/static/css/main.59d436a8.css",
+    "main.js": "/AppGestio/static/js/main.089bb907.js",
+    "static/js/453.f2e324f4.chunk.js": "/AppGestio/static/js/453.f2e324f4.chunk.js",
+    "index.html": "/AppGestio/index.html",
+    "main.59d436a8.css.map": "/AppGestio/static/css/main.59d436a8.css.map",
+    "main.089bb907.js.map": "/AppGestio/static/js/main.089bb907.js.map",
+    "453.f2e324f4.chunk.js.map": "/AppGestio/static/js/453.f2e324f4.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.4798361f.css",
-    "static/js/main.0e7835ae.js"
+    "static/css/main.59d436a8.css",
+    "static/js/main.089bb907.js"
   ]
 }
