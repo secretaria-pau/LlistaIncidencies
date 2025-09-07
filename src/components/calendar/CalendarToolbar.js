@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from "../ui";
 
 const CalendarToolbar = ({ calendars, activeCalendar, setActiveCalendar, currentView, setCurrentView, profile, onAddEventClick }) => {
   
@@ -6,51 +7,52 @@ const CalendarToolbar = ({ calendars, activeCalendar, setActiveCalendar, current
   const isIncidentsCalendar = activeCalendar === 'incidents';
 
   return (
-    <div className="d-flex justify-content-between align-items-center mb-4">
-      <div className="btn-group" role="group" aria-label="Calendar Selector">
+    <div className="flex justify-between items-center mb-4">
+      <div className="flex space-x-2" role="group" aria-label="Calendar Selector">
         {Object.values(calendars).map(calendar => (
-          <button 
+          <Button 
             key={calendar.id} 
             type="button" 
-            className={`btn ${activeCalendar === calendar.id ? 'btn-primary' : 'btn-outline-primary'}`}
+            variant={activeCalendar === calendar.id ? 'default' : 'outline'}
+            className={activeCalendar === calendar.id ? 'bg-[#288185] hover:bg-[#1e686b] text-white' : ''}
             onClick={() => setActiveCalendar(calendar.id)}
           >
             {calendar.name}
-          </button>
+          </Button>
         ))}
       </div>
 
-      <div>
+      <div className="flex items-center">
         {canEdit && !isIncidentsCalendar && (
-          <button 
-            className="btn btn-success me-3"
+          <Button 
+            className="bg-green-600 hover:bg-green-700 text-white mr-3"
             onClick={onAddEventClick}
           >
             Afegir Esdeveniment
-          </button>
+          </Button>
         )}
-        <div className="btn-group" role="group" aria-label="View Selector">
-          <button 
+        <div className="flex space-x-2" role="group" aria-label="View Selector">
+          <Button 
             type="button" 
-            className={`btn ${currentView === 'month' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+            variant={currentView === 'month' ? 'default' : 'outline'}
             onClick={() => setCurrentView('month')}
           >
             Mes
-          </button>
-          <button 
+          </Button>
+          <Button 
             type="button" 
-            className={`btn ${currentView === 'week' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+            variant={currentView === 'week' ? 'default' : 'outline'}
             onClick={() => setCurrentView('week')}
           >
             Setmana
-          </button>
-          <button 
+          </Button>
+          <Button 
             type="button" 
-            className={`btn ${currentView === 'agenda' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+            variant={currentView === 'agenda' ? 'default' : 'outline'}
             onClick={() => setCurrentView('agenda')}
           >
             Llista
-          </button>
+          </Button>
         </div>
       </div>
     </div>

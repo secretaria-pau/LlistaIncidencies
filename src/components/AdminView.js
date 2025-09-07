@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSheetData, callGASFunction } from '../googleServices';
+import { Button, Alert, AlertDescription, AlertTitle, Tabs, TabsContent, TabsList, TabsTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Checkbox } from "./ui";
+import { X } from "lucide-react";
 
 const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig, loading, profile, accessToken, onSyncLists, onUpdateStudents, onUpdateTeachers, onSyncMembers }) => {
   console.log('AdminView - config prop:', config);
@@ -29,9 +31,9 @@ const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig
     return classroomConfig[0] === 'TRUE';
   });
 
-  const handleConfigChange = (e, index, field) => {
+  const handleConfigChange = (value, index, field) => {
     const newConfig = [...editableConfig];
-    newConfig[index][field] = e.target.type === 'checkbox' ? e.target.checked.toString().toUpperCase() : e.target.value;
+    newConfig[index][field] = value;
     setEditableConfig(newConfig);
   };
 
@@ -136,171 +138,180 @@ const AdminView = ({ config, classrooms, teachers, groups, chats, onUpdateConfig
 
   return (
     <div>
-      <div className="mb-4">
-        <button onClick={onSyncLists} className="btn btn-primary me-2" disabled={loading}>
+      <div className="mb-4 flex space-x-2">
+        <Button onClick={onSyncLists} className="bg-[#288185] hover:bg-[#1e686b] text-white" disabled={loading}>
           {loading ? 'Sincronitzant...' : 'Sincronitza Llistes'}
-        </button>
-        <button onClick={onUpdateStudents} className="btn btn-primary me-2" disabled={loading}>
+        </Button>
+        <Button onClick={onUpdateStudents} className="bg-[#288185] hover:bg-[#1e686b] text-white" disabled={loading}>
           {loading ? 'Actualitzant...' : 'Actualitza Alumnes'}
-        </button>
-        <button onClick={onUpdateTeachers} className="btn btn-primary me-2" disabled={loading}>
+        </Button>
+        <Button onClick={onUpdateTeachers} className="bg-[#288185] hover:bg-[#1e686b] text-white" disabled={loading}>
           {loading ? 'Actualitzant...' : 'Actualitza Professors'}
-        </button>
-        <button onClick={onSyncMembers} className="btn btn-success" disabled={loading}>
+        </Button>
+        <Button onClick={onSyncMembers} className="bg-green-600 hover:bg-green-700 text-white" disabled={loading}>
           {loading ? 'Sincronitzant...' : 'Sincronitza Membres'}
-        </button>
+        </Button>
       </div>
 
-      <ul className="nav nav-tabs">
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'groups' ? 'active' : ''}`} onClick={() => setActiveTab('groups')}>
-            Llistat de grups
-          </button>
-        </li>
-        {profile.role === 'Direcció' && (
-          <li className="nav-item">
-            <button className={`nav-link ${activeTab === 'config' ? 'active' : ''}`} onClick={() => setActiveTab('config')}>
-              Configuració
-            </button>
-          </li>
-        )}
-      </ul>
+      <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="groups">Llistat de grups</TabsTrigger>
+          {profile.role === 'Direcció' && (
+            <TabsTrigger value="config">Configuració</TabsTrigger>
+          )}
+        </TabsList>
 
-      <div className="tab-content mt-3">
-        {activeTab === 'groups' && (
-          <div>
-            {studentsError && <div className="alert alert-danger">{studentsError}</div>}
-            {loadingStudents && <p>Carregant alumnes...</p>}
-            <div className="mb-3">
-              <label htmlFor="teacher-select" className="form-label">Selecciona un professor:</label>
-              <select id="teacher-select" className="form-select" onChange={(e) => setSelectedTeacher(e.target.value)} value={selectedTeacher}>
-                <option value="">Tots</option>
+        <TabsContent value="groups" className="mt-3">
+          {studentsError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{studentsError}</AlertDescription>
+            </Alert>
+          )}
+          {loadingStudents && <p>Carregant alumnes...</p>}
+          <div className="mb-3">
+            <label htmlFor="teacher-select" className="block text-sm font-medium text-gray-700 mb-1">Selecciona un professor:</label>
+            <Select onValueChange={setSelectedTeacher} value={selectedTeacher}>
+              <SelectTrigger className="w-[240px]">
+                <SelectValue placeholder="Tots" />
+              </SelectTrigger>
+              <SelectContent>
                 {uniqueTeachers.map((teacher, index) => (
-                  <option key={index} value={teacher.email}>{teacher.name}</option>
+                  <SelectItem key={index} value={teacher.email}>{teacher.name}</SelectItem>
                 ))}
-              </select>
-            </div>
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>Nom Classroom</th>
-                  <th>Enllaços</th>
-                  <th>Alumnes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeClassrooms.map((classroom, index) => {
-                  const classroomConfig = config.find(c => c[5] === classroom.id) || [];
-                  return (
-                    <tr key={index}>
-                      <td>{classroom.name}</td>
-                      <td>
-                        <a href={classroom.alternateLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary me-2">Classroom</a>
-                        {classroom.chatId ? (
-                          <a href={`https://chat.google.com/room/${classroom.chatId.split('/').pop()}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-success me-2">Chat</a>
-                        ) : (
-                          <span className="me-2">N/A</span>
-                        )}
-                        {classroom.groupUrl ? (
-                          <a href={classroom.groupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-warning">Grup</a>
-                        ) : (
-                          <span>N/A</span>
-                        )}
-                      </td>
-                      <td>
-                        <td>
-                          <button className="btn btn-sm btn-info me-2" onClick={() => handleViewStudents(classroom)}>
-                            Alumnes
-                          </button>
-                          <button className="btn btn-sm btn-primary" onClick={() => handleExportStudents(classroom)}>
-                           Exportar Alumnes
-                          </button>
-                        </td>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {selectedClassroom && (
-              <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                {/* console.log("Modal is rendered for:", selectedClassroom.name) */} {/* AÑADE ESTA LÍNEA */}
-                <div className="modal-dialog modal-lg">
-                  <div className="modal-content">
-                    <div className="modal-header">
-                      <h5 className="modal-title">Alumnes de {selectedClassroom.name}</h5>
-                      <button type="button" className="btn-close" onClick={handleCloseStudentsModal}></button>
-                    </div>
-                    <div className="modal-body">
-                      {classroomStudents.length > 0 ? (
-                        <table className="table table-striped">
-                          <thead>
-                            <tr>
-                              <th>Nom Alumne</th>
-                              <th>Email Alumne</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {classroomStudents.map((student, idx) => (
-                              <tr key={idx}>
-                                <td>{student[1]}</td>
-                                <td>{student[2]}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+              </SelectContent>
+            </Select>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom Classroom</TableHead>
+                <TableHead>Enllaços</TableHead>
+                <TableHead>Alumnes</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeClassrooms.map((classroom, index) => {
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{classroom.name}</TableCell>
+                    <TableCell>
+                      <a href={classroom.alternateLink} target="_blank" rel="noopener noreferrer" className="text-[#288185] hover:underline mr-2">Classroom</a>
+                      {classroom.chatId ? (
+                        <a href={`https://chat.google.com/room/${classroom.chatId.split('/').pop()}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline mr-2">Chat</a>
                       ) : (
-                        <p>No hi ha alumnes per a aquesta classe.</p>
+                        <span className="mr-2 text-gray-500">N/A</span>
                       )}
-                    </div>
-                    <div className="modal-footer">
-                      <button type="button" className="btn btn-secondary" onClick={handleCloseStudentsModal}>Tancar</button>
-                    </div>
-                  </div>
+                      {classroom.groupUrl ? (
+                        <a href={classroom.groupUrl} target="_blank" rel="noopener noreferrer" className="text-yellow-600 hover:underline">Grup</a>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" className="mr-2" onClick={() => handleViewStudents(classroom)}>
+                        Alumnes
+                      </Button>
+                      <Button size="sm" className="bg-[#288185] hover:bg-[#1e686b] text-white" onClick={() => handleExportStudents(classroom)}>
+                        Exportar Alumnes
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          {selectedClassroom && (
+            <Dialog open={selectedClassroom !== null} onOpenChange={handleCloseStudentsModal}>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Alumnes de {selectedClassroom.name}</DialogTitle>
+                  <Button variant="ghost" size="icon" onClick={handleCloseStudentsModal} className="absolute right-4 top-4">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DialogHeader>
+                <div className="p-4">
+                  {classroomStudents.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nom Alumne</TableHead>
+                          <TableHead>Email Alumne</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {classroomStudents.map((student, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-medium">{student[1]}</TableCell>
+                            <TableCell>{student[2]}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p>No hi ha alumnes per a aquesta classe.</p>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={handleCloseStudentsModal}>Tancar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </TabsContent>
+
         {activeTab === 'config' && profile.role === 'Direcció' && (
-          <div>
-            <button className="btn btn-primary mb-3" onClick={handleSaveChanges} disabled={loading}>
+          <TabsContent value="config" className="mt-3">
+            <Button onClick={handleSaveChanges} className="bg-[#288185] hover:bg-[#1e686b] text-white mb-3" disabled={loading}>
               {loading ? 'Guardant...' : 'Guardar Canvis'}
-            </button>
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>Actiu</th>
-                  <th>Nom Classroom</th>
-                  <th>Google Group associat</th>
-                  <th>Google Chat associat</th>
-                </tr>
-              </thead>
-              <tbody>
+            </Button>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Actiu</TableHead>
+                  <TableHead>Nom Classroom</TableHead>
+                  <TableHead>Google Group associat</TableHead>
+                  <TableHead>Google Chat associat</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {editableConfig.map((row, index) => (
-                  <tr key={index}>
-                    <td><input type="checkbox" checked={row[0] === 'TRUE'} onChange={(e) => handleConfigChange(e, index, 0)} /></td>
-                    <td>{row[1]}</td>
-                    <td>
-                      <select className="form-select" value={row[2]} onChange={(e) => handleConfigChange(e, index, 2)}>
-                        <option value="">-</option>
-                        {groups.map((group, i) => <option key={i} value={group}>{group}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      <select className="form-select" value={row[3]} onChange={(e) => handleConfigChange(e, index, 3)}>
-                        <option value="">-</option>
-                        {chats.map((chat, i) => <option key={i} value={chat.displayName}>{chat.displayName}</option>)}
-                      </select>
-                    </td>
-                  </tr>
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Checkbox
+                        checked={row[0] === 'TRUE'}
+                        onCheckedChange={(checked) => handleConfigChange(checked ? 'TRUE' : 'FALSE', index, 0)}
+                      />
+                    </TableCell>
+                    <TableCell>{row[1]}</TableCell>
+                    <TableCell>
+                      <Select value={row[2]} onValueChange={(value) => handleConfigChange(value, index, 2)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups.map((group, i) => <SelectItem key={i} value={group}>{group}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select value={row[3]} onValueChange={(value) => handleConfigChange(value, index, 3)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {chats.map((chat, i) => <SelectItem key={i} value={chat.displayName}>{chat.displayName}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
     </div>
   );
 };

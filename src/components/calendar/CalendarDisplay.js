@@ -24,13 +24,13 @@ const messages = {
 
 const CalendarDisplay = ({ events, view, date, onView, onNavigate, onSelectEvent, eventPropGetter }) => {
   return (
-    <div style={{ height: '70vh' }}>
+    <div className="h-[70vh]">
       <Calendar
         localizer={localizer}
         events={events}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: '100%' }}
+        className="h-full"
         view={view}
         date={date}
         onView={onView}

@@ -1,16 +1,21 @@
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button } from "./ui";
 
 const LoginView = ({ onLogin, error }) => {
   return (
-    <div className="container vh-100 d-flex justify-content-center align-items-center">
-      <div className="card text-center p-4 shadow">
-        <div className="card-body">
-          <h1 className="card-title">App Gestió CFA LA PAU</h1>
-          <p className="card-text">Si us plau, inicieu sessió con Google</p>
-          <button onClick={onLogin} className="btn btn-primary">Accedir con Google</button>
-          {error && <p className="text-danger mt-3">{error}</p>}
-        </div>
-      </div>
+    <div className="flex h-screen items-center justify-center bg-gray-50">
+      <Card className="w-[350px] shadow-sm rounded-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">App Gestió CFA LA PAU</CardTitle>
+          <CardDescription className="text-gray-600">Si us plau, inicieu sessió con Google</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center">
+          <Button onClick={onLogin} className="w-full bg-primary hover:bg-primary-light text-white font-bold py-2 px-4 rounded">
+            Accedir con Google
+          </Button>
+          {error && <p className="text-red-500 mt-3">{error}</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 };

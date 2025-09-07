@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, CardContent, CardHeader, CardTitle } from "./ui";
 
 const AnnualSummaryView = ({ incidents }) => {
   const [summaryData, setSummaryData] = useState({});
@@ -81,45 +82,49 @@ const AnnualSummaryView = ({ incidents }) => {
   };
 
   return (
-    <div className="mt-4">
-      <h3>Resum Anual d'Incidències</h3>
-      <div className="mb-3">
-        <label htmlFor="summaryYearFilter" className="form-label">Seleccioneu l'Any:</label>
-        <select
-          className="form-control"
-          id="summaryYearFilter"
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-        >
-          {years.map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
+    <div className="p-4">
+      <h3 className="text-xl font-semibold mb-4">Resum Anual d'Incidències</h3>
+      <div className="mb-4">
+        <label htmlFor="summaryYearFilter" className="block text-sm font-medium text-gray-700 mb-1">Seleccioneu l'Any:</label>
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Seleccioneu un any" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map(year => (
+              <SelectItem key={year} value={year}>{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {Object.keys(summaryData).length > 0 ? (
-        <table className="table table-striped table-bordered">
-          <thead className="thead-light">
-            <tr>
-              <th>Usuari</th>
-              {allTypes.map((type, index) => (
-                <th key={index}>{type}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(summaryData).map(userEmail => (
-              <tr key={userEmail}>
-                <td>{userEmail}</td>
-                {allTypes.map((type, index) => (
-                  <td key={index}>
-                    {summaryData[userEmail][type] ? formatDuration(summaryData[userEmail][type]) : '-'}
-                  </td>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuari</TableHead>
+                  {allTypes.map((type, index) => (
+                    <TableHead key={index}>{type}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.keys(summaryData).map(userEmail => (
+                  <TableRow key={userEmail}>
+                    <TableCell className="font-medium">{userEmail}</TableCell>
+                    {allTypes.map((type, index) => (
+                      <TableCell key={index}>
+                        {summaryData[userEmail][type] ? formatDuration(summaryData[userEmail][type]) : '-'}
+                      </TableCell>
+                    ))}
+                  </TableRow>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       ) : (
         <p>No hi ha dades de resum per mostrar per a l'any seleccionat.</p>
       )}

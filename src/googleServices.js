@@ -36,16 +36,25 @@ export async function callGASFunction(action, accessToken, params = {}) {
     const script = document.createElement('script');
 
     window[callbackName] = (data) => {
-      delete window[callbackName];
-      document.head.removeChild(script);
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
+      document.head.removeChild(script); // Remove the script tag
       resolve(data);
     };
 
     script.onerror = (error) => {
-      delete window[callbackName];
-      document.head.removeChild(script);
-      reject(new Error(`JSONP request failed: ${error.message}`));
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
+      document.head.removeChild(script); // Remove the script tag
+      reject(new Error(`JSONP request failed: ${error.message || 'Network error'}`));
     };
+
+    // Set a timeout for the request
+    const timeoutId = setTimeout(() => {
+      delete window[callbackName]; // Clean up the global callback
+      document.head.removeChild(script); // Remove the script tag
+      reject(new Error('JSONP request timed out.'));
+    }, 15000); // 15 seconds timeout
 
     // Construct query string from params
     const queryString = new URLSearchParams(params).toString();
@@ -60,16 +69,25 @@ async function callTICGASFunction(action, accessToken, params = {}) {
     const script = document.createElement('script');
 
     window[callbackName] = (data) => {
-      delete window[callbackName];
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
       document.head.removeChild(script);
       resolve(data);
     };
 
     script.onerror = (error) => {
-      delete window[callbackName];
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
       document.head.removeChild(script);
-      reject(new Error(`JSONP request failed: ${error.message}`));
+      reject(new Error(`JSONP request failed: ${error.message || 'Network error'}`));
     };
+
+    // Set a timeout for the request
+    const timeoutId = setTimeout(() => {
+      delete window[callbackName]; // Clean up the global callback
+      document.head.removeChild(script);
+      reject(new Error('JSONP request timed out.'));
+    }, 15000); // 15 seconds timeout
 
     params.accessToken = accessToken;
     const queryString = new URLSearchParams(params).toString();
@@ -101,16 +119,25 @@ async function callMantenimentGASFunction(action, accessToken, params = {}) {
     const script = document.createElement('script');
 
     window[callbackName] = (data) => {
-      delete window[callbackName];
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
       document.head.removeChild(script);
       resolve(data);
     };
 
     script.onerror = (error) => {
-      delete window[callbackName];
+      clearTimeout(timeoutId); // Clear the timeout
+      delete window[callbackName]; // Clean up the global callback
       document.head.removeChild(script);
-      reject(new Error(`JSONP request failed: ${error.message}`));
+      reject(new Error(`JSONP request failed: ${error.message || 'Network error'}`));
     };
+
+    // Set a timeout for the request
+    const timeoutId = setTimeout(() => {
+      delete window[callbackName]; // Clean up the global callback
+      document.head.removeChild(script);
+      reject(new Error('JSONP request timed out.'));
+    }, 15000); // 15 seconds timeout
 
     params.accessToken = accessToken;
     const queryString = new URLSearchParams(params).toString();

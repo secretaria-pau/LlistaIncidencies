@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getSheetData, callGASFunction } from '../googleServices';
+import { Button, Alert, AlertDescription, AlertTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui";
+import { X, ArrowLeft, BookOpen, MessageSquare, Users } from "lucide-react";
 
-const UserGroupsView = ({ classrooms, teachers, profile, accessToken }) => {
+const UserGroupsView = ({ classrooms, teachers, profile, accessToken, onBackClick }) => {
   const [students, setStudents] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState(null);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -101,85 +103,112 @@ const handleExportStudents = async (classroom) => { // CAMBIO: Ahora recibe 'cla
   }
 
   return (
-    <div>
-      {studentsError && <div className="alert alert-danger">{studentsError}</div>}
+    <div className="p-4">
+      <header className="flex justify-between items-center mb-6 pb-4 border-b">
+          <div className="flex items-center gap-4">
+            <Button onClick={onBackClick} className="bg-primary-light text-white">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Tornar
+            </Button>
+            <h1 className="text-2xl font-bold">Grups d'Alumnes</h1>
+          </div>
+          <div className="text-right">
+            <div className="font-semibold">{profile.name} ({profile.role})</div>
+            <div className="text-xs text-muted-foreground">{profile.email}</div>
+          </div>
+        </header>
+      {studentsError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{studentsError}</AlertDescription>
+        </Alert>
+      )}
       {loadingStudents && <p>Carregant alumnes...</p>}
 
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Nom Classroom</th>
-            <th>Enllaços</th>
-            <th>Alumnes</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom Classroom</TableHead>
+            <TableHead>Enllaços</TableHead>
+            <TableHead>Alumnes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {userClassrooms.map((classroom, index) => (
-            <tr key={index}>
-              <td>{classroom.name}</td>
-              <td>
-                <a href={classroom.alternateLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary me-2">Classroom</a>
+            <TableRow key={index}>
+              <TableCell className="font-medium">{classroom.name}</TableCell>
+              <TableCell>
+                <Button variant="link" size="sm" className="text-[#288185] hover:underline mr-2" onClick={() => window.open(classroom.alternateLink, '_blank')}>
+                  <BookOpen className="h-4 w-4 mr-1" />
+                  Classroom
+                </Button>
                 {classroom.chatId ? (
-                  <a href={`https://chat.google.com/room/${classroom.chatId.split('/').pop()}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-success me-2">Chat</a>
+                  <Button variant="link" size="sm" className="text-green-600 hover:underline mr-2" onClick={() => window.open(`https://chat.google.com/room/${classroom.chatId.split('/').pop()}`, '_blank')}>
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Chat
+                  </Button>
                 ) : (
-                  <span className="me-2">N/A</span>
+                  <span className="mr-2 text-gray-500">N/A</span>
                 )}
                 {classroom.groupUrl ? (
-                  <a href={classroom.groupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-warning">Grup</a>
+                  <Button variant="link" size="sm" className="text-yellow-600 hover:underline" onClick={() => window.open(classroom.groupUrl, '_blank')}>
+                    <Users className="h-4 w-4 mr-1" />
+                    Grup
+                  </Button>
                 ) : (
-                  <span>N/A</span>
+                  <span className="text-gray-500">N/A</span>
                 )}
-              </td>
-              <td>
-                <button className="btn btn-sm btn-info me-2" onClick={() => handleViewStudents(classroom)}>
+              </TableCell>
+              <TableCell>
+                <Button size="sm" variant="outline" className="mr-2" onClick={() => handleViewStudents(classroom)}>
                   Alumnes
-                </button>
-                <button className="btn btn-sm btn-primary" onClick={() => { /* console.log("Exportar Alumnes button clicked!"); handleExportStudents(classroom);*/ }}> 
+                </Button>
+                <Button size="sm" variant="default" onClick={() => { /* console.log("Exportar Alumnes button clicked!"); handleExportStudents(classroom);*/ }}> 
                   Exportar Alumnes
-                </button>
-              </td>
-            </tr>
+                </Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {selectedClassroom && (
-        <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Alumnes de {selectedClassroom.name}</h5>
-                <button type="button" className="btn-close" onClick={handleCloseStudentsModal}></button>
-              </div>
-              <div className="modal-body">
-                {classroomStudents.length > 0 ? (
-                  <table className="table table-striped">
-                    <thead>
-                      <tr>
-                        <th>Nom Alumne</th>
-                        <th>Email Alumne</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {classroomStudents.map((student, idx) => (
-                        <tr key={idx}>
-                          <td>{student[1]}</td>
-                          <td>{student[2]}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p>No hi ha alumnes per a aquesta classe.</p>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleCloseStudentsModal}>Tancar</button>
-                <button type="button" className="btn btn-primary" onClick={() => handleExportStudents(selectedClassroom.name, classroomStudents)}>Exportar a Sheets</button>
-              </div>
+        <Dialog open={selectedClassroom !== null} onOpenChange={handleCloseStudentsModal}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Alumnes de {selectedClassroom.name}</DialogTitle>
+              <Button variant="ghost" size="icon" onClick={handleCloseStudentsModal} className="absolute right-4 top-4">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            <div className="p-4">
+              {classroomStudents.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom Alumne</TableHead>
+                      <TableHead>Email Alumne</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {classroomStudents.map((student, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{student[1]}</TableCell>
+                        <TableCell>{student[2]}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p>No hi ha alumnes per a aquesta classe.</p>
+              )}
             </div>
-          </div>
-        </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseStudentsModal}>Tancar</Button>
+              <Button className="bg-[#288185] hover:bg-[#1e686b] text-white" onClick={() => handleExportStudents(selectedClassroom)}>Exportar a Sheets</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Select from 'react-select';
 import { getUsers } from '../../googleSheetsService';
 import { createEvent, updateEvent } from '../../googleCalendarService';
+import { Button, Input, Textarea, Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue, Checkbox, Alert, AlertDescription, AlertTitle, DialogFooter } from "../ui";
+import { X } from "lucide-react";
 
 const CATEGORIES = ['Coordinador', 'Entrevista', 'Activitats', 'Reunions', 'JAV', 'Calendari', 'CSI', 'EIB', 'FB', 'Proves'];
 const LA_PAU_CALENDAR_ID = 'c_classroom39c07066@group.calendar.google.com';
@@ -141,85 +143,95 @@ const EventForm = ({ isOpen, onClose, accessToken, calendarId, calendarName, onE
   if (!isOpen) return null;
 
   return (
-    <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">{isEditMode ? 'Editar Esdeveniment' : `Afegir Esdeveniment a: ${calendarName}`}</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h5 className="text-lg font-semibold">{isEditMode ? 'Editar Esdeveniment' : `Afegir Esdeveniment a: ${calendarName}`}</h5>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="modal-body">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+            <ShadcnSelect value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona una categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              </SelectContent>
+            </ShadcnSelect>
           </div>
-          <div className="modal-body">
-            {error && <div className="alert alert-danger">{error}</div>}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="category" className="form-label">Categoria</label>
-                <select id="category" className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
-                  {filteredCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div className="mb-3">
-                <label htmlFor="title" className="form-label">Títol</label>
-                <input type="text" className="form-control" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="description" className="form-label">Descripció</label>
-                <textarea className="form-control" id="description" rows="3" value={description} onChange={e => setDescription(e.target.value)}></textarea>
-              </div>
-
-              <div className="form-check mb-3">
-                <input className="form-check-input" type="checkbox" id="allDayCheck" checked={isAllDay} onChange={e => setIsAllDay(e.target.checked)} />
-                <label className="form-check-label" htmlFor="allDayCheck">
-                  Tot el dia
-                </label>
-              </div>
-
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label htmlFor="startDate" className="form-label">Data d'inici</label>
-                  <input type="date" className="form-control" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} required />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <label htmlFor="endDate" className="form-label">Data de fi (opcional)</label>
-                  <input type="date" className="form-control" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                </div>
-              </div>
-
-              {!isAllDay && (
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="startTime" className="form-label">Hora d'inici</label>
-                    <input type="time" className="form-control" id="startTime" value={startTime} onChange={e => setStartTime(e.target.value)} required />
-                  </div>
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="endTime" className="form-label">Hora de fi</label>
-                    <input type="time" className="form-control" id="endTime" value={endTime} onChange={e => setEndTime(e.target.value)} required />
-                  </div>
-                </div>
-              )}
-
-              {!isLaPauCalendar && (
-                <div className="mb-3">
-                  <label htmlFor="guests" className="form-label">Convidats</label>
-                  <Select
-                    id="guests"
-                    isMulti
-                    options={allUsers}
-                    value={invitedGuests}
-                    onChange={setInvitedGuests}
-                    placeholder="Selecciona convidats..."
-                  />
-                </div>
-              )}
-              
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel·lar</button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? (isEditMode ? 'Actualitzant...' : 'Creant...') : (isEditMode ? 'Actualitzar Esdeveniment' : 'Crear Esdeveniment')}
-                </button>
-              </div>
-            </form>
+          <div className="mb-3">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Títol</label>
+            <Input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
           </div>
-        </div>
+          <div className="mb-3">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Descripció</label>
+            <Textarea id="description" rows="3" value={description} onChange={e => setDescription(e.target.value)}></Textarea>
+          </div>
+
+          <div className="flex items-center space-x-2 mb-3">
+            <Checkbox id="allDayCheck" checked={isAllDay} onCheckedChange={setIsAllDay} />
+            <label htmlFor="allDayCheck" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Tot el dia
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Data d'inici</label>
+              <Input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">Data de fi (opcional)</label>
+              <Input type="date" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          {!isAllDay && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">Hora d'inici</label>
+                <Input type="time" id="startTime" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+              </div>
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">Hora de fi</label>
+                <Input type="time" id="endTime" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+              </div>
+            </div>
+          )}
+
+          {!isLaPauCalendar && (
+            <div className="mb-3">
+              <label htmlFor="guests" className="block text-sm font-medium text-gray-700 mb-1">Convidats</label>
+              <Select
+                id="guests"
+                isMulti
+                options={allUsers}
+                value={invitedGuests}
+                onChange={setInvitedGuests}
+                placeholder="Selecciona convidats..."
+                className="basic-multi-select"
+                classNamePrefix="select"
+              />
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel·lar</Button>
+            <Button type="submit" className="bg-[#288185] hover:bg-[#1e686b] text-white" disabled={loading}>
+              {loading ? (isEditMode ? 'Actualitzant...' : 'Creant...') : (isEditMode ? 'Actualitzar Esdeveniment' : 'Crear Esdeveniment')}
+            </Button>
+          </DialogFooter>
+        </form>
       </div>
     </div>
   );

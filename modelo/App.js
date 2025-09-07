@@ -19,10 +19,6 @@ import CalendarMainView from './components/calendar/CalendarMainView';
 import TICIncidentsView from './components/TICIncidentsView';
 import MantenimentView from './components/MantenimentView';
 import AvisosView from './components/AvisosView';
-import ErrorBoundary from './components/ErrorBoundary';
-
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Alert, AlertDescription, AlertTitle, Tabs, TabsContent, TabsList, TabsTrigger, Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui";
-import { Info, X } from "lucide-react";
 
 
 // Helper function to format dates for display
@@ -53,12 +49,39 @@ function App() {
   const [signatureType, setSignatureType] = useState('');
   const [currentView, setCurrentView] = useState('list');
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem('googleAccessToken'));
+  const [popover, setPopover] = useState({ show: false, content: '', x: 0, y: 0 });
 
+  // Effect to load profile if accessToken is already present (from localStorage)
   useEffect(() => {
-    if (accessToken) {
-      setCurrentScreen('home');
-    }
-  }, [accessToken]);
+    const loadProfileFromToken = async () => {
+      if (accessToken) {
+        try {
+          const googleProfile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+          }).then(res => res.json());
+
+          const userProfile = await getUserProfile(googleProfile.email, accessToken);
+
+          if (userProfile) {
+            setProfile(userProfile);
+            setCurrentScreen('home');
+          } else {
+            setError("Accés no autoritzat. El vostre correu electrònic no es troba a la llista d'usuaris permesos.");
+            setProfile(null);
+            setAccessToken(null);
+            localStorage.removeItem('googleAccessToken');
+          }
+        } catch (err) {
+          console.error(err);
+          setError(err.message || "Ha ocorregut un error durant la càrrega del perfil.");
+          setProfile(null);
+          setAccessToken(null);
+          localStorage.removeItem('googleAccessToken');
+        }
+      }
+    };
+    loadProfileFromToken();
+  }, []); // Run only once on mount
 
   const handleSignClick = (incidentData, originalSheetRowIndex, type) => {
     if (!isValidSignDate(incidentData)) {
@@ -285,6 +308,15 @@ function App() {
     }
   }, [profile]);
 
+  const handleMouseEnter = (e, content) => {
+    setPopover({ show: true, content, x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    setPopover({ show: false, content: '', x: 0, y: 0 });
+  };
+
+
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setAccessToken(tokenResponse.access_token);
@@ -334,109 +366,183 @@ function App() {
     const availableYears = exerciseIndex === -1 ? [] : [...new Set(masterIncidents.slice(1).map(item => item[exerciseIndex]))].filter(Boolean).sort((a, b) => b - a);
 
     const columnHeaders = incidents.length > 0 ? incidents[0] : [];
+    const hiddenCols = ['Exercici', 'Esborrat'];
+    const visibleHeaders = columnHeaders.map((header, index) => ({ header, index })).filter(h => !hiddenCols.includes(h.header));
+    const visibleHeadersModified = columnHeaders.map((header, index) => ({ header, index })).filter(h => h.header !== 'Exercici');
+
+    const dataIniciIndex = columnHeaders.indexOf('Data Inici');
+    const horaIniciIndex = columnHeaders.indexOf('Hora Inici');
+    const dataFiIndex = columnHeaders.indexOf('Data Fi');
+    const horaFiIndex = columnHeaders.indexOf('Hora Fi');
     const signaturaUsuariIndex = columnHeaders.indexOf('Signatura Usuari');
     const timestampSignaturaUsuariIndex = columnHeaders.indexOf('Timestamp Signatura Usuari');
     const signaturaDireccioIndex = columnHeaders.indexOf('Signatura Direcció');
     const timestampSignaturaDireccioIndex = columnHeaders.indexOf('Timestamp Signatura Direcció');
     const userEmailIndex = columnHeaders.indexOf('Usuari (Email)');
     const duracioIndex = columnHeaders.indexOf('Duració');
+    const exerciciIndex = columnHeaders.indexOf('Exercici');
     const tipusIndex = columnHeaders.indexOf('Tipus');
     const esborratIndex = columnHeaders.indexOf('Esborrat');
     const observacionsIndex = columnHeaders.indexOf('Observacions');
-    const dataIniciIndex = columnHeaders.indexOf('Data Inici');
-    const horaIniciIndex = columnHeaders.indexOf('Hora Inici');
-    const dataFiIndex = columnHeaders.indexOf('Data Fi');
-    const horaFiIndex = columnHeaders.indexOf('Hora Fi');
+
+    // Define the order and content of the new visible headers
+    const processedHeaders = [
+      { header: 'Usuari (Email)', originalIndex: userEmailIndex },
+      { header: 'Inici', originalIndex: dataIniciIndex }, // Combined Data Inici and Hora Inici
+      { header: 'Fi', originalIndex: dataFiIndex },       // Combined Data Fi and Hora Fi
+      { header: 'Duració', originalIndex: duracioIndex },
+      { header: 'Tipus', originalIndex: tipusIndex },
+      { header: 'Signatura Usuari', originalIndex: signaturaUsuariIndex }, // Combined Signatura Usuari and Timestamp
+      { header: 'Signatura Direcció', originalIndex: signaturaDireccioIndex }, // Combined Signatura Direcció and Timestamp
+      // 'Exercici' and 'Esborrat' are typically hidden or handled separately
+    ].filter(h => h.originalIndex !== -1);
+
+    const processedHeadersModified = [
+      { header: 'Usuari (Email)', originalIndex: userEmailIndex },
+      { header: 'Inici', originalIndex: dataIniciIndex },
+      { header: 'Fi', originalIndex: dataFiIndex },
+      { header: 'Duració', originalIndex: duracioIndex },
+      { header: 'Tipus', originalIndex: tipusIndex },
+      { header: 'Signatura Usuari', originalIndex: signaturaUsuariIndex },
+      { header: 'Signatura Direcció', originalIndex: signaturaDireccioIndex },
+      { header: 'Esborrat', originalIndex: esborratIndex },
+    ].filter(h => h.originalIndex !== -1);
+
 
     return (
-      <div className="container mx-auto p-4">
-        {/* Top Bar with Title and Profile */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Incidències de personal</h2>
-          <div className="flex items-center">
+      <div className="container mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2>Incidències de personal</h2>
+          <div className="d-flex align-items-center">
             {profile && (
-              <div className="text-right mr-3">
+              <div className="text-end me-3">
                 <div><strong>{profile.name}</strong> ({profile.role})</div>
                 <div><small>{profile.email}</small></div>
               </div>
             )}
-            <Button onClick={onBackClick} variant="outline">Tornar</Button>
+            <button onClick={onBackClick} className="btn btn-secondary">Tornar</button>
           </div>
         </div>
         
         {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            {error}
+            <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close" onClick={() => setError(null)}></button>
+          </div>
+        )}
+
+        {popover.show && (
+          <div className="popover" role="tooltip" style={{ position: 'fixed', zIndex: 9999, top: popover.y + 10, left: popover.x + 10, maxWidth: '300px', display: 'block' }}>
+            <div className="popover-body">
+              {popover.content}
+            </div>
+          </div>
         )}
 
         {profile && (
-          <Tabs defaultValue="list" value={currentView} onValueChange={setCurrentView} className="mb-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="list">Incidències de personal</TabsTrigger>
-              <TabsTrigger value="modified">Incidències modificades</TabsTrigger>
-              <TabsTrigger value="summary">Resum Anual</TabsTrigger>
-              <TabsTrigger value="documentation">Documentació</TabsTrigger>
-            </TabsList>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                className={`nav-link ${currentView === 'list' ? 'active' : ''}`}
+                onClick={() => setCurrentView('list')}
+              >
+                Incidències de personal
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                className={`nav-link ${currentView === 'modified' ? 'active' : ''}`}
+                onClick={() => setCurrentView('modified')}
+              >
+                Incidències modificades
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                className={`nav-link ${currentView === 'summary' ? 'active' : ''}`}
+                onClick={() => setCurrentView('summary')}
+              >
+                Resum Anual
+              </button>
+            </li>
+            <li className="nav-item">
+              <button className={`nav-link ${currentView === 'documentation' ? 'active' : ''}`}
+                onClick={() => setCurrentView('documentation')}
+              >
+                Documentació
+              </button>
+            </li>
+          </ul>
+        )}
 
-            <TabsContent value="list">
-              <h3 className="mt-4 text-xl font-semibold mb-3">Filtres</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                { (profile?.role === 'Gestor' || profile?.role === 'Direcció') ? (
-                  <div>
-                    <label htmlFor="filterUser" className="block text-sm font-medium text-gray-700 mb-1">Filtrar per Usuari</label>
-                    <Select value={filterUser} onValueChange={(value) => setFilterUser(value === 'all' ? '' : value)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Tots els usuaris" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tots els usuaris</SelectItem>
-                        {users.filter(user => user && user.email && user.email.trim() !== '').map(user => (
-                          <SelectItem key={user.email} value={user.email}>{user.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="filterUser" className="block text-sm font-medium text-gray-700 mb-1">Les meves Incidències</label>
-                    <Input
-                      type="text"
-                      id="filterUser"
-                      value={profile.email}
-                      readOnly
-                    />
-                  </div>
-                )}
-                <div>
-                  <label htmlFor="filterYear" className="block text-sm font-medium text-gray-700 mb-1">Filtrar per Any</label>
-                  <Select value={filterYear} onValueChange={(value) => setFilterYear(value === 'all' ? '' : value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Tots els anys" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tots els anys</SelectItem>
-                      {availableYears.filter(year => year && year.toString().trim() !== '').map(year => (
-                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        {currentView === 'list' && (
+          <>
+            <h3 className="mt-4">Filtres</h3>
+            <div className="row mb-3">
+              { (profile?.role === 'Gestor' || profile?.role === 'Direcció') ? (
+                <div className="col-md-6">
+                  <label htmlFor="filterUser" className="form-label">Filtrar per Usuari</label>
+                  <select
+                    className="form-control"
+                    id="filterUser"
+                    value={filterUser}
+                    onChange={(e) => setFilterUser(e.target.value)}
+                  >
+                    <option value="">Tots els usuaris</option>
+                    {users.map(user => (
+                      <option key={user.email} value={user.email}>{user.name}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xl font-semibold">Incidències de personal</h3>
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => setEditingIncident({ data: null, originalSheetRowIndex: null })}
+              ) : (
+                <div className="col-md-6">
+                  <label htmlFor="filterUser" className="form-label">Les meves Incidències</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="filterUser"
+                    value={profile.email}
+                    readOnly
+                  />
+                </div>
+              )}
+              <div className="col-md-6">
+                <label htmlFor="filterYear" className="form-label">Filtrar per Any</label>
+                <select
+                  className="form-control"
+                  id="filterYear"
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value)}
                 >
-                  Afegir Nova Incidència
-                </Button>
+                  <option value="">Tots els anys</option>
+                  {availableYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
               </div>
+            </div>
 
-              {incidents.length > 1 ? (
-                <div className="grid grid-cols-1 gap-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h3>Incidències de personal</h3>
+              <button
+                className="btn btn-success"
+                onClick={() => setEditingIncident({ data: null, originalSheetRowIndex: null })}
+              >
+                Afegir Nova Incidència
+              </button>
+            </div>
+
+            {incidents.length > 1 ? (
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    {processedHeaders.map(h => (
+                      <th key={h.header}>{h.header}</th>
+                    ))}
+                    <th>Accions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {incidents.slice(1).map((item, rowIndex) => {
                     const isUserSigned = item.data[signaturaUsuariIndex] === 'TRUE';
                     const isDirectorSigned = item.data[signaturaDireccioIndex] === 'TRUE';
@@ -447,138 +553,149 @@ function App() {
                     const observacions = item.data[observacionsIndex];
 
                     return (
-                      <Card key={rowIndex} className="shadow-sm rounded-lg cursor-pointer hover:shadow-md transition-shadow duration-200">
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
-                            <div><strong>Usuari:</strong> {item.data[userEmailIndex]}</div>
-                            <div><strong>Tipus:</strong> {item.data[tipusIndex]}</div>
-                            <div><strong>Inici:</strong> {formatDateForDisplay(item.data[dataIniciIndex])} {item.data[horaIniciIndex]}</div>
-                            <div><strong>Fi:</strong> {formatDateForDisplay(item.data[dataFiIndex])} {item.data[horaFiIndex]}</div>
-                            <div><strong>Duració:</strong> {item.data[duracioIndex]}</div>
-                            <div className="flex items-center">
-                              <strong>Observacions:</strong> {observacions && (
-                                <span 
-                                  className="info-icon ml-1"
-                                  // onMouseEnter={(e) => handleMouseEnter(e, observacions)}
-                                  // onMouseLeave={handleMouseLeave}
-                                >
-                                  <Info className="h-4 w-4 text-gray-500" />
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <strong>Signatura Usuari:</strong> <input type="checkbox" checked={isUserSigned} readOnly />
-                              {isUserSigned && <span className="block text-xs text-gray-500">{item.data[timestampSignaturaUsuariIndex]}</span>}
-                            </div>
-                            <div>
-                              <strong>Signatura Direcció:</strong> <input type="checkbox" checked={isDirectorSigned} readOnly />
-                              {isDirectorSigned && <span className="block text-xs text-gray-500">{item.data[timestampSignaturaDireccioIndex]}</span>}
-                            </div>
-                          </div>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {canEdit && <Button
-                              size="sm"
-                              className="bg-[#288185] hover:bg-[#1e686b] text-white"
-                              onClick={() => handleEditClick(item.data, item.originalSheetRowIndex)}
+                      <tr key={rowIndex}>
+                        <td>{item.data[userEmailIndex]}</td>
+                        <td>
+                          {item.data[tipusIndex]}
+                          {observacions && (
+                            <span 
+                              className="info-icon ms-1"
+                              onMouseEnter={(e) => handleMouseEnter(e, observacions)}
+                              onMouseLeave={handleMouseLeave}
                             >
-                              Editar
-                            </Button>}
-                            {canUserSign && (
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() => handleSignClick(item.data, item.originalSheetRowIndex, 'user')}
-                              >
-                                Signar (Usuari)
-                              </Button>
-                            )}
-                            {canDirectorSign && (
-                              <Button
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={() => handleSignClick(item.data, item.originalSheetRowIndex, 'director')}
-                              >
-                                Signar (Direcció)
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-info-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                              </svg>
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <input type="checkbox" checked={isUserSigned} readOnly />
+                          {isUserSigned && <><br/>{item.data[timestampSignaturaUsuariIndex]}</>}
+                        </td>
+                        <td>
+                          <input type="checkbox" checked={isDirectorSigned} readOnly />
+                          {isDirectorSigned && <><br/>{item.data[timestampSignaturaDireccioIndex]}</>}
+                        </td>
+                        <td>
+                          {canEdit && <button
+                            className="btn btn-sm btn-primary me-2"
+                            onClick={() => handleEditClick(item.data, item.originalSheetRowIndex)}
+                          >
+                            Editar
+                          </button>}
+                          {canUserSign && (
+                            <button
+                              className="btn btn-sm btn-success me-2"
+                              onClick={() => handleSignClick(item.data, item.originalSheetRowIndex, 'user')}
+                            >
+                              Signar (Usuari)
+                            </button>
+                          )}
+                          {canDirectorSign && (
+                            <button
+                              className="btn btn-sm btn-info"
+                              onClick={() => handleSignClick(item.data, item.originalSheetRowIndex, 'director')}
+                            >
+                              Signar (Direcció)
+                            </button>
+                          )}
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              ) : (
-                <p>No hi ha incidències per mostrar.</p>
-              )}
-            </TabsContent>
+                </tbody>
+              </table>
+            ) : (
+              <p>No hi ha incidències per mostrar.</p>
+            )}
+          </>
+        )}
 
-            <TabsContent value="summary">
-              <AnnualSummaryView incidents={incidents} profile={profile} />
-            </TabsContent>
+        {currentView === 'summary' && (
+          <AnnualSummaryView incidents={incidents} profile={profile} />
+        )}
 
-            <TabsContent value="modified">
-              <h3 className="text-xl font-semibold mb-3">Incidències modificades després de signar</h3>
-              {modifiedIncidents.length > 1 ? (
-                <div className="grid grid-cols-1 gap-4">
+        {currentView === 'modified' && (
+          <>
+            <h3>Incidències modificades després de signar</h3>
+            {modifiedIncidents.length > 1 ? (
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    {processedHeadersModified.map(h => (
+                      <th key={h.header}>{h.header}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
                   {modifiedIncidents.slice(1).map((item, rowIndex) => {
                     const isUserSigned = item.data[signaturaUsuariIndex] === 'TRUE';
                     const isDirectorSigned = item.data[signaturaDireccioIndex] === 'TRUE';
 
                     return (
-                      <Card key={rowIndex} className="shadow-sm rounded-lg">
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
-                            <div><strong>Usuari:</strong> {item.data[userEmailIndex]}</div>
-                            <div><strong>Inici:</strong> {formatDateForDisplay(item.data[dataIniciIndex])} {item.data[horaIniciIndex]}</div>
-                            <div><strong>Fi:</strong> {formatDateForDisplay(item.data[dataFiIndex])} {item.data[horaFiIndex]}</div>
-                            <div><strong>Duració:</strong> {item.data[duracioIndex]}</div>
-                            <div><strong>Tipus:</strong> {item.data[tipusIndex]}</div>
-                            <div>
-                              <strong>Signatura Usuari:</strong> <input type="checkbox" checked={isUserSigned} readOnly />
-                              {isUserSigned && <span className="block text-xs text-gray-500">{item.data[timestampSignaturaUsuariIndex]}</span>}
-                            </div>
-                            <div>
-                              <strong>Signatura Direcció:</strong> <input type="checkbox" checked={isDirectorSigned} readOnly />
-                              {isDirectorSigned && <span className="block text-xs text-gray-500">{item.data[timestampSignaturaDireccioIndex]}</span>}
-                            </div>
-                            <div>
-                              <strong>Esborrat:</strong> <input type="checkbox" checked={item.data[esborratIndex] === 'TRUE'} readOnly />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <tr key={rowIndex}>
+                        <td>{item.data[userEmailIndex]}</td>
+                        <td>
+                          {formatDateForDisplay(item.data[dataIniciIndex])}<br/>
+                          {item.data[horaIniciIndex]}
+                        </td>
+                        <td>
+                          {formatDateForDisplay(item.data[dataFiIndex])}<br/>
+                          {item.data[horaFiIndex]}
+                        </td>
+                        <td>{item.data[duracioIndex]}</td>
+                        <td>{item.data[tipusIndex]}</td>
+                        <td>
+                          <input type="checkbox" checked={isUserSigned} readOnly />
+                          {isUserSigned && <><br/>{item.data[timestampSignaturaUsuariIndex]}</>}
+                        </td>
+                        <td>
+                          <input type="checkbox" checked={isDirectorSigned} readOnly />
+                          {isDirectorSigned && <><br/>{item.data[timestampSignaturaDireccioIndex]}</>}
+                        </td>
+                        <td>
+                          <input type="checkbox" checked={item.data[esborratIndex] === 'TRUE'} readOnly />
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              ) : (
-                <p>No hi ha incidències modificades per mostrar.</p>
-              )}
-            </TabsContent>
+                </tbody>
+              </table>
+            ) : (
+              <p>No hi ha incidències modificades per mostrar.</p>
+            )}
+          </>
+        )}
 
-            <TabsContent value="documentation">
-              <DocumentationView accessToken={accessToken} />
-            </TabsContent>
-          </Tabs>
+        {currentView === 'documentation' && (
+          <DocumentationView accessToken={accessToken} />
         )}
 
         {editingIncident !== null && (
-          <Dialog open={editingIncident !== null} onOpenChange={handleCloseForm}>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>{editingIncident.data ? 'Editar Incidència' : 'Afegir Nova Incidència'}</DialogTitle>
-              </DialogHeader>
-              <AddIncidentForm
-                incidentToEdit={editingIncident.data}
-                originalSheetRowIndex={editingIncident.originalSheetRowIndex}
-                onSaveIncident={handleSaveIncident}
-                onClose={handleCloseForm}
-                setError={setError}
-                profile={profile}
-                users={users}
-                incidentTypes={incidentTypes}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+            <div className="modal-dialog modal-lg">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">{editingIncident.data ? 'Editar Incidència' : 'Afegir Nova Incidència'}</h5>
+                  <button type="button" className="btn-close" onClick={handleCloseForm}></button>
+                </div>
+                <div className="modal-body">
+                  <AddIncidentForm
+                    incidentToEdit={editingIncident.data}
+                    originalSheetRowIndex={editingIncident.originalSheetRowIndex}
+                    onSaveIncident={handleSaveIncident}
+                    onClose={handleCloseForm}
+                    setError={setError}
+                    profile={profile}
+                    users={users}
+                    incidentTypes={incidentTypes}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         <SignatureConfirmPopup
@@ -598,9 +715,9 @@ function App() {
       case 'login':
         return <LoginView onLogin={login} error={error} />;
       case 'home':
-        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} onTICIncidentsClick={() => setCurrentScreen('tic-incidents')} onMantenimentClick={() => setCurrentScreen('manteniment-incidents')} onAvisosClick={() => setCurrentScreen('avisos')} accessToken={accessToken} profile={profile} onLogout={handleLogout} setProfile={setProfile} setError={setError} setCurrentScreen={setCurrentScreen} />;
+        return <HomeView onIncidentsClick={() => setCurrentScreen('incidents')} onCalendarClick={() => setCurrentScreen('calendar')} onGroupsClick={() => setCurrentScreen('groups')} onTICIncidentsClick={() => setCurrentScreen('tic-incidents')} onMantenimentClick={() => setCurrentScreen('manteniment-incidents')} onAvisosClick={() => setCurrentScreen('avisos')} accessToken={accessToken} profile={profile} onLogout={handleLogout} />;
       case 'incidents':
-        return <ErrorBoundary><IncidentsView onBackClick={() => setCurrentScreen('home')} /></ErrorBoundary>;
+        return <IncidentsView onBackClick={() => setCurrentScreen('home')} />;
       case 'calendar':
         return <CalendarMainView onBackClick={() => setCurrentScreen('home')} accessToken={accessToken} profile={profile} />;
       case 'groups':

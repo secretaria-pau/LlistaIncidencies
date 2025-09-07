@@ -7,6 +7,9 @@ import { getEvents, deleteEvent, updateEvent } from '../../googleCalendarService
 import { fetchSheetData } from '../../googleSheetsService'; // To get incidents
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
+import { Button, Alert, AlertDescription, AlertTitle, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui";
+import { X } from "lucide-react";
+
 const CALENDARS = {
   laPau: {
     id: 'c_classroom39c07066@group.calendar.google.com',
@@ -234,17 +237,17 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
   const activeCalendarName = Object.values(CALENDARS).find(c => c.id === activeCalendar)?.name || '';
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Calendaris del centre</h2>
-        <div className="d-flex align-items-center">
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Calendaris del centre</h2>
+        <div className="flex items-center">
           {profile && (
-            <div className="text-end me-3">
+            <div className="text-right mr-3">
               <div><strong>{profile.name}</strong> ({profile.role})</div>
               <div><small>{profile.email}</small></div>
             </div>
           )}
-          <button onClick={onBackClick} className="btn btn-secondary">Tornar</button>
+          <Button onClick={onBackClick} variant="outline">Tornar</Button>
         </div>
       </div>
 
@@ -259,9 +262,10 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
       />
 
       {error && (
-        <div className="alert alert-danger mt-3" role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mt-3">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <EventForm 
@@ -284,37 +288,37 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
       />
 
       {selectedIncident && (
-        <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Detall de la Incidència</h5>
-                <button type="button" className="btn-close" onClick={() => setSelectedIncident(null)}></button>
-              </div>
-              <div className="modal-body">
-                <h4>{selectedIncident.title}</h4>
-                <hr />
-                <p><strong>Inici:</strong> {selectedIncident.start.toLocaleString('es-ES')}</p>
-                <p><strong>Fi:</strong> {selectedIncident.end.toLocaleString('es-ES')}</p>
-                {(profile.role === 'Gestor' || profile.role === 'Direcció') && (
-                  <div className="mt-4">
-                    <h5>Detalls complets (visible per a Gestor/Direcció)</h5>
-                    {selectedIncident.headers.map((header, index) => {
-                      if (header === 'Esborrat') return null; // Don't show the deleted flag
-                      let content = selectedIncident.rawData[index];
-                      if (content === 'TRUE') content = 'Sí';
-                      if (content === 'FALSE' || content === '') content = 'No';
-                      return <p key={header}><strong>{header}:</strong> {content}</p>;
-                    })}
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedIncident(null)}>Tancar</button>
-              </div>
+        <Dialog open={selectedIncident !== null} onOpenChange={() => setSelectedIncident(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Detall de la Incidència</DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedIncident(null)} className="absolute right-4 top-4">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            <div className="p-4">
+              <h4 className="text-lg font-semibold mb-2">{selectedIncident.title}</h4>
+              <hr className="mb-2" />
+              <p className="mb-1"><strong>Inici:</strong> {selectedIncident.start.toLocaleString('es-ES')}</p>
+              <p className="mb-1"><strong>Fi:</strong> {selectedIncident.end.toLocaleString('es-ES')}</p>
+              {(profile.role === 'Gestor' || profile.role === 'Direcció') && (
+                <div className="mt-4">
+                  <h5 className="text-md font-semibold mb-2">Detalls complets (visible per a Gestor/Direcció)</h5>
+                  {selectedIncident.headers.map((header, index) => {
+                    if (header === 'Esborrat') return null; // Don't show the deleted flag
+                    let content = selectedIncident.rawData[index];
+                    if (content === 'TRUE') content = 'Sí';
+                    if (content === 'FALSE' || content === '') content = 'No';
+                    return <p key={header} className="mb-1"><strong>{header}:</strong> {content}</p>;
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedIncident(null)}>Tancar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {loading ? (
@@ -335,4 +339,3 @@ function CalendarMainView({ onBackClick, accessToken, profile }) {
 }
 
 export default CalendarMainView;
-

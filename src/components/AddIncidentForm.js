@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Checkbox } from "./ui";
 
 // Helper functions for date conversion
 const toInputFormat = (dateStr) => { // dd/mm/yyyy -> yyyy-mm-dd
@@ -206,50 +207,49 @@ const AddIncidentForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4">
-      {/* ... form elements ... */}
-      <div className="row mb-3">
-        <div className="col-md-6">
-          <label htmlFor="userEmail" className="form-label">Usuari (Email)</label>
-          <select
-            className="form-control"
-            id="userEmail"
-            name="Usuari (Email)"
+    <form onSubmit={handleSubmit} className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label htmlFor="userEmail" className="block text-sm font-medium text-gray-700 mb-1">Usuari (Email)</label>
+          <Select
             value={incidentData['Usuari (Email)']}
-            onChange={handleChange}
-            required
+            onValueChange={(value) => handleChange({ target: { name: 'Usuari (Email)', value } })}
             disabled={profile?.role === 'Usuari'}
           >
-            <option value="">Seleccioneu un usuari</option>
-            {users.map((user, index) => (
-              <option key={index} value={user.email}>{user.name} ({user.email})</option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccioneu un usuari" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((user, index) => (
+                <SelectItem key={index} value={user.email}>{user.name} ({user.email})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="col-md-6">
-          <label htmlFor="type" className="form-label">Tipus</label>
-          <select
-            className="form-control"
-            id="type"
-            name="Tipus"
+        <div>
+          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Tipus</label>
+          <Select
             value={incidentData['Tipus']}
-            onChange={handleChange}
+            onValueChange={(value) => handleChange({ target: { name: 'Tipus', value } })}
             required
           >
-            <option value="">Seleccioneu un tipus</option>
-            {incidentTypes.map((typeObj, index) => (
-              <option key={index} value={typeObj.type}>{typeObj.type}</option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccioneu un tipus" />
+            </SelectTrigger>
+            <SelectContent>
+              {incidentTypes.map((typeObj, index) => (
+                <SelectItem key={index} value={typeObj.type}>{typeObj.type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-3">
-          <label htmlFor="startDate" className="form-label">Data Inici</label>
-          <input
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Data Inici</label>
+          <Input
             type="date"
-            className="form-control"
             id="startDate"
             name="Data Inici"
             value={incidentData['Data Inici']}
@@ -259,11 +259,10 @@ const AddIncidentForm = ({
         </div>
         
         {selectedTypeUnit === 'D' && (
-          <div className="col-md-3">
-            <label htmlFor="endDate" className="form-label">Data Fi</label>
-            <input
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">Data Fi</label>
+            <Input
               type="date"
-              className="form-control"
               id="endDate"
               name="Data Fi"
               value={incidentData['Data Fi']}
@@ -274,22 +273,20 @@ const AddIncidentForm = ({
 
         {selectedTypeUnit === 'H' && (
           <>
-            <div className="col-md-3">
-              <label htmlFor="startTime" className="form-label">Hora Inici</label>
-              <input
+            <div>
+              <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">Hora Inici</label>
+              <Input
                 type="time"
-                className="form-control"
                 id="startTime"
                 name="Hora Inici"
                 value={incidentData['Hora Inici']}
                 onChange={handleChange}
               />
             </div>
-            <div className="col-md-3">
-              <label htmlFor="endTime" className="form-label">Hora Fi</label>
-              <input
+            <div>
+              <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">Hora Fi</label>
+              <Input
                 type="time"
-                className="form-control"
                 id="endTime"
                 name="Hora Fi"
                 value={incidentData['Hora Fi']}
@@ -300,23 +297,21 @@ const AddIncidentForm = ({
         )}
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-6">
-          <label htmlFor="duration" className="form-label">Duració</label>
-          <input
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">Duració</label>
+          <Input
             type="text"
-            className="form-control"
             id="duration"
             name="Duració"
             value={incidentData['Duració']}
             readOnly
           />
         </div>
-        <div className="col-md-6">
-          <label htmlFor="exercise" className="form-label">Exercici</label>
-          <input
+        <div>
+          <label htmlFor="exercise" className="block text-sm font-medium text-gray-700 mb-1">Exercici</label>
+          <Input
             type="text"
-            className="form-control"
             id="exercise"
             name="Exercici"
             value={incidentData['Exercici']}
@@ -325,62 +320,58 @@ const AddIncidentForm = ({
         </div>
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-12">
-          <label htmlFor="observacions" className="form-label">Observacions</label>
-          <textarea
-            className="form-control"
-            id="observacions"
-            name="Observacions"
-            rows="3"
-            value={incidentData['Observacions']}
-            onChange={handleChange}
-          ></textarea>
-        </div>
+      <div className="mb-4">
+        <label htmlFor="observacions" className="block text-sm font-medium text-gray-700 mb-1">Observacions</label>
+        <Textarea
+          id="observacions"
+          name="Observacions"
+          rows="3"
+          value={incidentData['Observacions']}
+          onChange={handleChange}
+        ></Textarea>
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-3 form-check d-flex align-items-end">
-          <input
-            type="checkbox"
-            className="form-check-input"
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="flex items-center space-x-2">
+          <Checkbox
             id="userSignature"
             name="Signatura Usuari"
             checked={incidentData['Signatura Usuari']}
             disabled
+            onCheckedChange={(checked) => handleChange({ target: { name: 'Signatura Usuari', type: 'checkbox', checked } })}
           />
-          <label htmlFor="userSignature" className="form-check-label ms-2">Signatura Usuari</label>
+          <label htmlFor="userSignature" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Signatura Usuari</label>
         </div>
-        <div className="col-md-3 form-check d-flex align-items-end">
-          <input
-            type="checkbox"
-            className="form-check-input"
+        <div className="flex items-center space-x-2">
+          <Checkbox
             id="directorSignature"
             name="Signatura Direcció"
             checked={incidentData['Signatura Direcció']}
             disabled
+            onCheckedChange={(checked) => handleChange({ target: { name: 'Signatura Direcció', type: 'checkbox', checked } })}
           />
-          <label htmlFor="directorSignature" className="form-check-label ms-2">Signatura Direcció</label>
+          <label htmlFor="directorSignature" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Signatura Direcció</label>
         </div>
-        <div className="col-md-3 form-check d-flex align-items-end">
-          <input
-            type="checkbox"
-            className="form-check-input"
+        <div className="flex items-center space-x-2">
+          <Checkbox
             id="deleted"
             name="Esborrat"
             checked={incidentData['Esborrat']}
             disabled
+            onCheckedChange={(checked) => handleChange({ target: { name: 'Esborrat', type: 'checkbox', checked } })}
           />
-          <label htmlFor="deleted" className="form-check-label ms-2">Esborrat</label>
+          <label htmlFor="deleted" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Esborrat</label>
         </div>
       </div>
 
-      <button type="submit" className="btn btn-primary">
-        {incidentToEdit ? 'Guardar Canvis' : 'Afegir Incidència'}
-      </button>
-      <button type="button" className="btn btn-secondary ms-2" onClick={onClose}>
-        Cancel·lar
-      </button>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel·lar
+        </Button>
+        <Button type="submit" className="bg-[#288185] hover:bg-[#1e686b] text-white">
+          {incidentToEdit ? 'Guardar Canvis' : 'Afegir Incidència'}
+        </Button>
+      </div>
     </form>
   );
 };

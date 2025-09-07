@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getConfig, getSheetData, updateConfig, callGASFunction } from '../googleServices';
 import AdminView from './AdminView';
 import UserGroupsView from './UserGroupsView';
+import { Button, Alert, AlertDescription, AlertTitle } from "./ui";
 
 const MyGroupsView = ({ onBackClick, accessToken, profile }) => {
   const [config, setConfig] = useState([]);
@@ -167,20 +168,25 @@ const MyGroupsView = ({ onBackClick, accessToken, profile }) => {
   };
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Grups d'alumnes</h2>
-        <div className="d-flex align-items-center">
-          <div className="text-end me-3">
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Grups d'alumnes</h2>
+        <div className="flex items-center">
+          <div className="text-right mr-3">
             <div><strong>{profile.name}</strong> ({profile.role})</div>
             <div><small>{profile.email}</small></div>
           </div>
-          <button onClick={onBackClick} className="btn btn-secondary">Tornar</button>
+          <Button onClick={onBackClick} variant="outline">Tornar</Button>
         </div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {loading && <p>Carregant...</p>}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {loading && <p className="mb-4">Carregant...</p>}
 
       {renderViewByRole()}
     </div>

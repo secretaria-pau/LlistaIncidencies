@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { addAviso } from '../avisosService';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { X } from "lucide-react";
 
 const AvisoForm = ({ accessToken, onClose, onAvisoAdded }) => {
   const [titol, setTitol] = useState('');
@@ -30,51 +35,48 @@ const AvisoForm = ({ accessToken, onClose, onAvisoAdded }) => {
   };
 
   return (
-    <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Afegir Nou Avís</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+    <div className="p-4">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label htmlFor="titol" className="text-right">Títol</label>
+            <Input
+              type="text"
+              id="titol"
+              value={titol}
+              onChange={(e) => setTitol(e.target.value)}
+              required
+              className="col-span-3"
+            />
           </div>
-          <div className="modal-body">
-            {error && <div className="alert alert-danger">{error}</div>}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="titol" className="form-label">Títol</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="titol" 
-                  value={titol}
-                  onChange={(e) => setTitol(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="contingut" className="form-label">Contingut</label>
-                <textarea 
-                  className="form-control" 
-                  id="contingut" 
-                  rows="10"
-                  value={contingut}
-                  onChange={(e) => setContingut(e.target.value)}
-                  required
-                ></textarea>
-                <small className="form-text text-muted fw-bold text-info"> 
-                  Pots fer servir etiquetes HTML bàsiques com ara &lt;b&gt;negreta&lt;/b&gt;, &lt;i&gt;cursiva&lt;/i&gt;, i &lt;a href="..."&gt;enllaços&lt;/a&gt;.
-                </small>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel·lar</button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Guardant...' : 'Guardar Avís'}
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label htmlFor="contingut" className="text-right">Contingut</label>
+            <Textarea
+              id="contingut"
+              rows="10"
+              value={contingut}
+              onChange={(e) => setContingut(e.target.value)}
+              required
+              className="col-span-3"
+            ></Textarea>
+            <p className="text-sm text-gray-500 mt-1 font-bold col-span-3 col-start-2">
+              Pots fer servir etiquetes HTML bàsiques com ara &lt;b&gt;negreta&lt;/b&gt;, &lt;i&gt;cursiva&lt;/i&gt;, i &lt;a href="..."&gt;enllaços&lt;/a&gt;.
+            </p>
           </div>
         </div>
-      </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
+          <Button type="submit" variant="default" disabled={loading}>
+            {loading ? 'Guardant...' : 'Guardar Avís'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

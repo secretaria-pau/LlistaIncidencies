@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getActiveAvisos } from '../avisosService';
+import { getUserProfile } from '../googleSheetsService';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, Button } from "./ui";
+import { Info, Users, Calendar, AlertTriangle, Wrench, LogOut, Bell } from "lucide-react";
 
-const HomeView = ({ onIncidentsClick, onCalendarClick, onGroupsClick, onTICIncidentsClick, onMantenimentClick, onAvisosClick, profile, onLogout, accessToken }) => {
+const HomeView = ({ onIncidentsClick, onCalendarClick, onGroupsClick, onTICIncidentsClick, onMantenimentClick, onAvisosClick, profile, onLogout, accessToken, setProfile, setError, setCurrentScreen }) => {
   const [avisos, setAvisos] = useState([]);
   const [loadingAvisos, setLoadingAvisos] = useState(true);
 
@@ -20,70 +23,109 @@ const HomeView = ({ onIncidentsClick, onCalendarClick, onGroupsClick, onTICIncid
       }
     };
 
+    const loadProfile = async () => {
+      if (accessToken && !profile) {
+        try {
+          const googleProfile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+          }).then(res => res.json());
+
+          const userProfile = await getUserProfile(googleProfile.email, accessToken);
+
+          if (userProfile) {
+            setProfile(userProfile);
+          } else {
+            setError("Accés no autoritzat. El vostre correu electrònic no es troba a la llista d'usuaris permesos.");
+            setCurrentScreen('login');
+          }
+        } catch (err) {
+          console.error(err);
+          setError(err.message || "Ha ocorregut un error durant la càrrega del perfil.");
+          setCurrentScreen('login');
+        }
+      }
+    };
+
+    loadProfile();
     fetchAvisos();
-  }, [accessToken]);
+  }, [accessToken, profile, setProfile, setError, setCurrentScreen]);
+
+  if (!profile) {
+    return <div className="flex h-screen items-center justify-center">Carregant perfil...</div>; // Or a loading spinner
+  }
+
+  const menuItems = [
+    { title: "Incidències de personal", onClick: onIncidentsClick, icon: AlertTriangle, roles: ['all'] },
+    { title: "Calendaris del centre", onClick: onCalendarClick, icon: Calendar, roles: ['all'] },
+    { title: "Grups d'alumnes", onClick: onGroupsClick, icon: Users, roles: ['all'] },
+    { title: "Incidències TIC", onClick: onTICIncidentsClick, icon: AlertTriangle, roles: ['all'] },
+    { title: "Incidències Manteniment", onClick: onMantenimentClick, icon: Wrench, roles: ['Gestor', 'Direcció'] },
+  ];
 
   return (
-    <div className="container my-5">
-      {/* Top Bar with Profile and Logout */}
-      <div className="d-flex justify-content-end align-items-center mb-4">
-        <div className="text-end me-3">
-          <div><strong>{profile.name}</strong> ({profile.role})</div>
-          <div><small>{profile.email}</small></div>
-        </div>
-        <button onClick={onLogout} className="btn btn-danger">Tancar Sessió</button>
-      </div>
-
-      <div className="row g-4">
-        {/* Left Column: Main Menu */}
-        <div className="col-lg-6">
-          <div className="card text-center p-4 shadow h-100">
-            <div className="card-body d-flex flex-column">
-              <h1 className="card-title">App Gestió CFA LA PAU</h1>
-              <div className="d-grid gap-3 mt-4 flex-grow-1">
-                <button onClick={onIncidentsClick} className="btn btn-primary">Incidències de personal</button>
-                <button onClick={onCalendarClick} className="btn btn-primary">Calendaris del centre</button>
-                <button onClick={onGroupsClick} className="btn btn-primary">Grups d'alumnes</button>
-                <button onClick={onTICIncidentsClick} className="btn btn-info">Incidències TIC</button>
-                {(profile.role === 'Gestor' || profile.role === 'Direcció') && (
-                  <button onClick={onMantenimentClick} className="btn btn-info">Incidències Manteniment</button>
-                )}
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">App Gestió CFA LA PAU</h1>
+          <div className="flex items-center">
+            <div className="text-right mr-4">
+              <div className="font-semibold">{profile.name}</div>
+              <div className="text-sm text-gray-500">{profile.role}</div>
             </div>
+            <Button onClick={onLogout} variant="outline" size="icon">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      </header>
 
-        {/* Right Column: Announcements */}
-        <div className="col-lg-6">
-          <div className="card text-start shadow h-100 d-flex flex-column">
-            <div className="card-header fw-bold">
-              Avisos
-            </div>
-            <div className="card-body flex-grow-1">
+      <main className="container mx-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {menuItems.map((item, index) => (
+            (item.roles.includes('all') || item.roles.includes(profile.role)) && (
+              <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer border border-primary" onClick={item.onClick}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-base font-medium">{item.title}</CardTitle>
+                  <item.icon className="h-8 w-8 text-gray-500" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-gray-500">Accedir a la secció</p>
+                </CardContent>
+              </Card>
+            )
+          ))}
+        </div>
+
+        <div className="lg:col-span-1">
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center"><Bell className="h-5 w-5 mr-2" />Avisos</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow">
               {loadingAvisos ? (
                 <p>Carregant avisos...</p>
               ) : (
-                <ul className="list-group list-group-flush">
-                  <li className="list-group-item">
-                    <a href="https://sites.google.com/cfalapau.cat/documents-docents" target="_blank" rel="noopener noreferrer">
+                <ul className="divide-y divide-gray-200">
+                  <li className="py-2">
+                    <a href="https://sites.google.com/cfalapau.cat/documents-docents" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                       Documents per als docents (enllaç permanent)
                     </a>
                   </li>
                   {avisos.map(aviso => (
-                    <li key={aviso.ID} className="list-group-item">
-                      <h6 className="mb-1">{aviso.Titol}</h6>
-                      <div dangerouslySetInnerHTML={{ __html: aviso.Contingut }} />
+                    <li key={aviso.ID} className="py-2">
+                      <h6 className="font-semibold mb-1">{aviso.Titol}</h6>
+                      <div dangerouslySetInnerHTML={{ __html: aviso.Contingut }} className="text-sm text-gray-700" />
                     </li>
                   ))}
                 </ul>
               )}
-            </div>
-            <div className="card-footer bg-transparent border-top-0 text-end">
-                 <button onClick={onAvisosClick} className="btn btn-secondary">Tots els Avisos</button>
-            </div>
-          </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={onAvisosClick} className="w-full bg-primary-light text-white">Tots els Avisos</Button>
+            </CardFooter>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

@@ -60,3 +60,7 @@ export const toggleAvisoStatus = async (id, accessToken) => {
     // For JSONP, POST data must be sent as GET parameters
     return makeJsonpRequest('toggleAvisoStatus', { id: id });
 };
+
+export const deleteAviso = async (id, accessToken) => {
+    return makeJsonpRequest('deleteAviso', { id: id });
+};

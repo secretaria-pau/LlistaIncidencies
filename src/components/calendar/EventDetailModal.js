@@ -1,4 +1,6 @@
 import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "../ui";
+import { X } from "lucide-react";
 
 const EventDetailModal = ({ event, onClose, calendarName, profile, onDelete, onEdit }) => {
   if (!event) return null;
@@ -30,48 +32,46 @@ const EventDetailModal = ({ event, onClose, calendarName, profile, onDelete, onE
   const displayEnd = allDay ? new Date(end.getTime() - (24 * 60 * 60 * 1000)) : end;
 
   return (
-    <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <div>
-              <h5 className="modal-title">{title}</h5>
-              <small className="text-muted">Calendari: {calendarName}</small>
+    <Dialog open={!!event} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">Calendari: {calendarName}</DialogDescription>
+          <Button variant="ghost" size="icon" onClick={onClose} className="absolute right-4 top-4">
+            <X className="h-4 w-4" />
+          </Button>
+        </DialogHeader>
+        <div className="p-4">
+          <p className="mb-1"><strong>Inici:</strong> {formatDateTime(start, allDay)}</p>
+          <p className="mb-3"><strong>Fi:</strong> {formatDateTime(displayEnd, allDay)}</p>
+          {description && (
+            <div className="mb-3">
+              <h6 className="font-semibold">Descripció:</h6>
+              <p>{description}</p>
             </div>
-            <button type="button" className="btn-close" onClick={onClose}></button>
-          </div>
-          <div className="modal-body">
-            <p><strong>Inici:</strong> {formatDateTime(start, allDay)}</p>
-            <p><strong>Fi:</strong> {formatDateTime(displayEnd, allDay)}</p>
-            {description && (
-              <>
-                <h6>Descripció:</h6>
-                <p>{description}</p>
-              </>
-            )}
-            {attendees.length > 0 && (
-              <>
-                <h6>Convidats:</h6>
-                <ul>
-                  {attendees.map(att => <li key={att.email}>{att.email}</li>)}
-                </ul>
-              </>
-            )}
-          </div>
-          <div className="modal-footer justify-content-between">
-            <div>
-              {canEdit && (
-                <>
-                  <button type="button" className="btn btn-primary me-2" onClick={onEdit}>Editar</button>
-                  <button type="button" className="btn btn-danger" onClick={handleDelete}>Esborrar</button>
-                </>
-              )}
+          )}
+          {attendees.length > 0 && (
+            <div className="mb-3">
+              <h6 className="font-semibold">Convidats:</h6>
+              <ul className="list-disc list-inside">
+                {attendees.map(att => <li key={att.email}>{att.email}</li>)}
+              </ul>
             </div>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Tancar</button>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
+        <DialogFooter className="flex justify-between items-center">
+          <div>
+            {canEdit && (
+              <>
+                <Button className="bg-[#288185] hover:bg-[#1e686b] text-white mr-2" onClick={onEdit}>Editar</Button>
+                <Button variant="destructive" onClick={handleDelete}>Esborrar</Button>
+              </>
+            )}
+          </div>
+          <Button variant="outline" onClick={onClose}>Tancar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

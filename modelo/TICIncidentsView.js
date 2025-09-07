@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMantenimentIncidents, addMantenimentIncident, updateMantenimentIncident, exportMantenimentPendingIncidents } from '../googleServices';
+import { getTICIncidents, addTICIncident, updateTICIncident, exportTICPendingIncidents } from '../googleServices';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from './ui/dialog';
@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { ArrowLeft, Plus, Upload, Search, Info, Edit, Download } from 'lucide-react';
 
-const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
+const TICIncidentsView = ({ onBackClick, profile, accessToken, users }) => {
   const [incidents, setIncidents] = useState([]);
   const [filteredIncidents, setFilteredIncidents] = useState([]);
   const [editingIncident, setEditingIncident] = useState(null); // Used for the modal
@@ -28,7 +28,7 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await getMantenimentIncidents(accessToken);
+      const response = await getTICIncidents(accessToken);
       if (response.status === 'success') {
         setIncidents(response.data);
         setFilteredIncidents(response.data);
@@ -58,7 +58,7 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
       "Estat": "Comunicat",
       "Tipus": "",
       "Espai": "",
-      "Objecte avariat": "",
+      "Dispositiu afectat": "",
       "Descripció": ""
     });
   };
@@ -74,9 +74,9 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
     try {
       let response;
       if (editingIncident.ID) {
-        response = await updateMantenimentIncident(editingIncident, accessToken);
+        response = await updateTICIncident(editingIncident, accessToken);
       } else {
-                response = await addMantenimentIncident(editingIncident, accessToken);
+                response = await addTICIncident(editingIncident, accessToken);
       }
 
       if (response.status === 'success') {
@@ -96,7 +96,7 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await exportMantenimentPendingIncidents(accessToken);
+      const response = await exportTICPendingIncidents(accessToken);
       if (response.status === 'success') {
         alert(`S'ha creat la fulla de càlcul: ${response.data}`);
         window.open(response.data, '_blank');
@@ -127,11 +127,10 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
       <div className="p-4 sm:p-6 lg:p-8">
         <header className="flex justify-between items-center mb-6 pb-4 border-b">
           <div className="flex items-center gap-4">
-            <Button onClick={onBackClick} className="bg-primary-light text-white">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Tornar
+            <Button onClick={onBackClick} variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold">Incidències de Manteniment</h1>
+            <h1 className="text-2xl font-bold">Incidències TIC</h1>
           </div>
           <div className="text-right">
             <div className="font-semibold">{profile.name} ({profile.role})</div>
@@ -167,7 +166,7 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
           <Card className="mt-6 p-4"> {/* Using Card for consistent styling */}
             <CardHeader>
               <CardTitle>{editingIncident.ID ? 'Editar Incidència' : 'Nova Incidència'}</CardTitle>
-              <CardDescription>Formulari per editar o afegir una nova incidència de Manteniment.</CardDescription>
+              <CardDescription>Formulari per editar o afegir una nova incidència TIC.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 py-4">
@@ -176,12 +175,13 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
                   <Select value={editingIncident.Tipus || ''} onValueChange={(value) => setEditingIncident({...editingIncident, Tipus: value})}>
                     <SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona un tipus" /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="Mobiliari">Mobiliari</SelectItem>
-                        <SelectItem value="Lavabos i aigua">Lavabos i aigua</SelectItem>
-                        <SelectItem value="Finestres">Finestres</SelectItem>
-                        <SelectItem value="Terra i parets">Terra i parets</SelectItem>
-                        <SelectItem value="Portes i tancaments">Portes i tancaments</SelectItem>
-                        <SelectItem value="Altres">Altres</SelectItem>
+                      <SelectItem value="Dispositiu portàtil">Dispositiu portàtil</SelectItem>
+                      <SelectItem value="Ordinador de sobretaula">Ordinador de sobretaula</SelectItem>
+                      <SelectItem value="Impressió">Impressió</SelectItem>
+                      <SelectItem value="Projector o monitor">Projector o monitor</SelectItem>
+                      <SelectItem value="Equip de so">Equip de so</SelectItem>
+                      <SelectItem value="Maleta audiovisual">Maleta audiovisual</SelectItem>
+                      <SelectItem value="Altres">Altres</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -210,8 +210,8 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="objecte-avariat" className="text-right">Objecte avariat</Label>
-                  <Textarea id="objecte-avariat" value={editingIncident["Objecte avariat"] || ''} onChange={(e) => setEditingIncident({...editingIncident, "Objecte avariat": e.target.value})} className="col-span-3" />
+                  <Label htmlFor="dispositiu" className="text-right">Dispositiu</Label>
+                  <Textarea id="dispositiu" value={editingIncident["Dispositiu afectat"] || ''} onChange={(e) => setEditingIncident({...editingIncident, "Dispositiu afectat": e.target.value})} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="descripcio" className="text-right">Descripció</Label>
@@ -246,13 +246,13 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
               <TableHeader className="bg-primary text-primary-foreground">
                 <TableRow className="hover:bg-primary/90">
                   
-                  <TableHead className="text-primary-foreground w-[180px]">Qui informa?</TableHead>
-                  <TableHead className="text-primary-foreground w-[120px]">Tipus</TableHead>
-                  <TableHead className="text-primary-foreground w-[120px]">Espai</TableHead>
-                  <TableHead className="text-primary-foreground w-[120px]">Objecte avariat</TableHead>
-                  <TableHead className="text-primary-foreground w-[120px]">Comunicat</TableHead>
-                  <TableHead className="text-primary-foreground w-[120px]">Última edició</TableHead>
-                  <TableHead className="text-primary-foreground w-[400px]">Descripció</TableHead>
+                  <TableHead className="text-primary-foreground">Qui informa?</TableHead>
+                  <TableHead className="text-primary-foreground w-24">Tipus</TableHead>
+                  <TableHead className="text-primary-foreground">Espai</TableHead>
+                  <TableHead className="text-primary-foreground">Dispositiu afectat</TableHead>
+                  <TableHead className="text-primary-foreground w-32">Comunicat</TableHead>
+                  <TableHead className="text-primary-foreground w-32">Última edició</TableHead>
+                  <TableHead className="text-primary-foreground">Descripció</TableHead>
                   <TableHead className="text-right text-primary-foreground w-24">Accions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -281,10 +281,19 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
                           <TableCell>{incident["Qui fa la incidencia?"]}</TableCell>
                           <TableCell>{incident.Tipus}</TableCell>
                           <TableCell>{incident.Espai}</TableCell>
-                          <TableCell>{incident["Objecte avariat"]}</TableCell>
+                          <TableCell>{incident["Dispositiu afectat"]}</TableCell>
                           <TableCell>{new Date(incident["Data de comunicació"]).toLocaleDateString('ca-ES')}</TableCell>
                           <TableCell>{new Date(incident["Data de la darrera edició"]).toLocaleDateString('ca-ES')}</TableCell>
-                          <TableCell className="w-[400px]">{incident.Descripció}</TableCell>
+                          <TableCell>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="link" className="p-0 h-auto text-muted-foreground text-sm">
+                                  <Info className="mr-1 h-3 w-3" /> Veure
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p className="max-w-xs">{incident.Descripció}</p></TooltipContent>
+                            </Tooltip>
+                          </TableCell>
                           <TableCell className="text-right">
                             {(profile.role === 'Gestor' || profile.role === 'Direcció') && (
                               <Button variant="ghost" size="icon" onClick={() => handleEditIncident(incident)}>
@@ -308,5 +317,4 @@ const MantenimentView = ({ onBackClick, profile, accessToken, users }) => {
   );
 };
 
-export default MantenimentView;
-            
+export default TICIncidentsView;

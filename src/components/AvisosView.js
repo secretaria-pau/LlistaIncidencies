@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { getAllAvisos, toggleAvisoStatus } from '../avisosService';
+import { getAllAvisos, toggleAvisoStatus, deleteAviso } from '../avisosService';
 import AvisoForm from './AvisoForm';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Button } from './ui/button';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Badge } from './ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
+import { Trash2, ArrowLeft } from "lucide-react";
 
 const AvisosView = ({ onBackClick, profile, accessToken }) => {
   const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false); // To control the form modal
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false); // To control the confirmation dialog
+  const [avisoToDelete, setAvisoToDelete] = useState(null); // To store the aviso to be deleted
 
   const canManage = profile.role === 'Direcció';
 
@@ -36,64 +45,159 @@ const AvisosView = ({ onBackClick, profile, accessToken }) => {
     }
   };
 
+  const handleDeleteClick = (avisoId) => {
+    setAvisoToDelete(avisoId);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (avisoToDelete) {
+      try {
+        await deleteAviso(avisoToDelete, accessToken);
+        fetchAllAvisos(); // Refresh the list after deletion
+      } catch (err) {
+        alert(`Error al eliminar l'avís: ${err.message}`);
+      } finally {
+        setIsConfirmDialogOpen(false);
+        setAvisoToDelete(null);
+      }
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsConfirmDialogOpen(false);
+    setAvisoToDelete(null);
+  };
+
   const handleAvisoAdded = () => {
     setIsFormOpen(false);
     fetchAllAvisos(); // Refresh list after adding a new aviso
   }
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Historial d'Avisos</h2>
-        <div className="d-flex align-items-center">
-          <div className="text-end me-3">
-            <div><strong>{profile.name}</strong> ({profile.role})</div>
-            <div><small>{profile.email}</small></div>
+    <div className="container mx-auto p-4">
+      {/* Top Bar with Title and Profile */}
+      <header className="flex justify-between items-center mb-6 pb-4 border-b">
+          <div className="flex items-center gap-4">
+            <Button onClick={onBackClick} className="bg-primary-light text-white">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Tornar
+            </Button>
+            <h1 className="text-2xl font-bold">Historial d'Avisos</h1>
           </div>
-          <button onClick={onBackClick} className="btn btn-secondary">Tornar</button>
-        </div>
-      </div>
+          <div className="text-right">
+            <div className="font-semibold">{profile.name} ({profile.role})</div>
+            <div className="text-xs text-muted-foreground">{profile.email}</div>
+          </div>
+        </header>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {canManage && (
         <div className="mb-3">
-          <button className="btn btn-primary" onClick={() => setIsFormOpen(true)}>+ Afegir Nou Avís</button>
+          <Button onClick={() => setIsFormOpen(true)} variant="default">+ Afegir Nou Avís</Button>
         </div>
       )}
 
       {isFormOpen && (
-        <AvisoForm 
-          accessToken={accessToken} 
-          onClose={() => setIsFormOpen(false)}
-          onAvisoAdded={handleAvisoAdded}
-        />
+        <Card className="mt-6 p-4">
+          <CardHeader>
+            <CardTitle>Afegir Nou Avís</CardTitle>
+            <CardDescription>Formulari per afegir un nou avís.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AvisoForm
+              accessToken={accessToken}
+              onClose={() => setIsFormOpen(false)}
+              onAvisoAdded={handleAvisoAdded}
+            />
+          </CardContent>
+        </Card>
       )}
+
+      
+
+      {/* Confirmation Dialog for Deletion */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Esteu segur?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Aquesta acció no es pot desfer. Això eliminarà permanentment l'avís.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete}>Cancel·lar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {loading ? (
         <p>Carregant avisos...</p>
       ) : (
-        <div className="list-group">
-          {avisos.map(aviso => (
-            <div key={aviso.ID} className="list-group-item list-group-item-action flex-column align-items-start">
-              <div className="d-flex w-100 justify-content-between">
-                <h5 className="mb-1">{aviso.Titol}</h5>
-                <small>{new Date(aviso.Timestamp).toLocaleString('es-ES')}</small>
-              </div>
-              <div className="mb-1" dangerouslySetInnerHTML={{ __html: aviso.Contingut }} />
-              <div className="d-flex w-100 justify-content-between align-items-center mt-2">
-                  <small>Estat: {aviso.Actiu ? <span className="badge bg-success">Actiu</span> : <span className="badge bg-danger">Inactiu</span>}</small>
-                  {canManage && (
-                      <button 
-                        className={`btn btn-sm ${aviso.Actiu ? 'btn-warning' : 'btn-success'}`}
-                        onClick={() => handleToggleStatus(aviso.ID)}
-                      >
-                        {aviso.Actiu ? 'Desactivar' : 'Activar'}
-                      </button>
-                  )}
-              </div>
-            </div>
-          ))}
+        <div className="rounded-md border overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader className="bg-primary text-primary-foreground">
+              <TableRow className="hover:bg-primary/90">
+                <TableHead className="text-primary-foreground w-[200px]">Títol</TableHead>
+                <TableHead className="text-primary-foreground">Contingut</TableHead>
+                <TableHead className="text-primary-foreground w-[120px]">Estat</TableHead>
+                <TableHead className="text-primary-foreground w-[180px]">Data</TableHead>
+                <TableHead className="text-right text-primary-foreground w-24">Accions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {avisos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    No s'han trobat avisos.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                avisos.map(aviso => (
+                  <TableRow key={aviso.ID} className="hover:bg-muted/50 data-[state=selected]:bg-muted">
+                    <TableCell className="font-medium">{aviso.Titol}</TableCell>
+                    <TableCell dangerouslySetInnerHTML={{ __html: aviso.Contingut }} />
+                    <TableCell>
+                      {aviso.Actiu ?
+                        <Badge className="bg-green-500 text-white">Actiu</Badge> :
+                        <Badge className="bg-red-500 text-white">Inactiu</Badge>
+                      }
+                    </TableCell>
+                    <TableCell>{new Date(aviso.Timestamp).toLocaleString('es-ES')}</TableCell>
+                    <TableCell className="text-right">
+                      {canManage && (
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            className={aviso.Actiu ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}
+                            size="sm"
+                            onClick={() => handleToggleStatus(aviso.ID)}
+                          >
+                            {aviso.Actiu ? 'Desactivar' : 'Activar'}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteClick(aviso.ID)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
